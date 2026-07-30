@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bi3echri-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bi3echri
+      POSTGRES_PASSWORD: bi3echri
+      POSTGRES_DB: bi3echri
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bi3echri"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:latest
+    container_name: bi3echri-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    container_name: bi3echri-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://bi3echri:bi3echri@postgres:5432/bi3echri?schema=public
+      JWT_SECRET: dev-secret-change-me-in-production-3f8a1c9d2e
+      JWT_EXPIRES_IN: 7d
+      FRONTEND_URL: http://localhost:3000
+      PORT: 3001
+      TSC_NONPOLLING_WATCHER: "true"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: bi3echri-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

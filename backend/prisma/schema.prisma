@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VENDEUR
+}
+
+enum Condition {
+  NEUF
+  OCCASION
+}
+
+enum ArticleStatus {
+  EN_STOCK
+  RESERVE
+  VENDU
+}
+
+enum CashMovementType {
+  RESET
+  PURCHASE
+  SALE
+  EXPENSE
+  MANUAL
+  INVESTMENT
+}
+
+enum SupplierType {
+  SOUK
+  PARTICULIER
+}
+
+model Supplier {
+  id        String       @id @default(uuid())
+  type      SupplierType
+  name      String
+  phone     String?
+  location  String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("suppliers")
+  @@index([type])
+}
+
+model AppSettings {
+  id              Int      @id @default(1)
+  demoModeEnabled Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          Role           @default(VENDEUR)
+  phone         String?
+  bio           String?
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  articles      Article[]      @relation("ArticleCreatedBy")
+  sales         Sale[]         @relation("SaleSoldBy")
+  cashMovements CashMovement[]
+  expenses      Expense[]
+
+  @@map("users")
+}
+
+model CashMovement {
+  id          String           @id @default(uuid())
+  type        CashMovementType
+  amount      Decimal          @db.Decimal(10, 2)
+  comment     String?
+  articleId   String?
+  saleId      String?
+  expenseId   String?
+  createdById String
+  createdBy   User             @relation(fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@map("cash_movements")
+  @@index([createdAt])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  amount      Decimal  @db.Decimal(10, 2)
+  comment     String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@map("expenses")
+  @@index([createdAt])
+}
+
+model Category {
+  id       String     @id @default(uuid())
+  name     String     @unique
+  slug     String     @unique
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  articles Article[]
+
+  @@map("categories")
+  @@index([parentId])
+}
+
+model Article {
+  id             String        @id @default(uuid())
+  name           String
+  description    String?
+  categoryId     String
+  category       Category      @relation(fields: [categoryId], references: [id])
+  condition      Condition     @default(OCCASION)
+  purchasePrice  Decimal       @db.Decimal(10, 2)
+  purchaseDate   DateTime
+  purchaseSource String?
+  expectedSalePrice Decimal?   @db.Decimal(10, 2)
+  quantity       Int           @default(1)
+  status         ArticleStatus @default(EN_STOCK)
+  specs          Json?
+  createdById    String
+  createdBy      User          @relation("ArticleCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  sale           Sale?
+  photos         Photo[]
+
+  @@map("articles")
+  @@index([categoryId])
+  @@index([status])
+}
+
+model Photo {
+  id        String   @id @default(uuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("photos")
+  @@index([articleId])
+}
+
+model Sale {
+  id           String   @id @default(uuid())
+  articleId    String   @unique
+  article      Article  @relation(fields: [articleId], references: [id])
+  salePrice    Decimal  @db.Decimal(10, 2)
+  saleDate     DateTime @default(now())
+  buyerName    String?
+  buyerContact String?
+  adChannel    String
+  notes        String?
+  soldById     String
+  soldBy       User     @relation("SaleSoldBy", fields: [soldById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@map("sales")
+  @@index([saleDate])
+  @@index([adChannel])
+}
