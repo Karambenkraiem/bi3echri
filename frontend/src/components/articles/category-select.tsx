@@ -6,6 +6,14 @@ interface CategorySelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   categories: Category[] | undefined;
   placeholder?: string;
   placeholderDisabled?: boolean;
+  /**
+   * Quand true (contexte filtre), la catégorie mère devient elle-même
+   * sélectionnable — pour filtrer sur elle et toutes ses sous-catégories.
+   * Par défaut false : un article ne peut être rattaché qu'à une catégorie
+   * sans enfants (feuille), donc le formulaire d'article garde le
+   * comportement d'origine (mère non sélectionnable, juste un regroupement).
+   */
+  includeParents?: boolean;
 }
 
 /**
@@ -15,7 +23,7 @@ interface CategorySelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
  * not directly selectable — only their children are.
  */
 export const CategorySelect = forwardRef<HTMLSelectElement, CategorySelectProps>(
-  ({ categories, placeholder = 'Choisir...', placeholderDisabled = true, ...props }, ref) => {
+  ({ categories, placeholder = 'Choisir...', placeholderDisabled = true, includeParents = false, ...props }, ref) => {
     const topLevel = (categories ?? []).filter((c) => !c.parentId);
 
     return (
@@ -26,6 +34,9 @@ export const CategorySelect = forwardRef<HTMLSelectElement, CategorySelectProps>
         {topLevel.map((category) =>
           category.children && category.children.length > 0 ? (
             <optgroup key={category.id} label={category.name}>
+              {includeParents && (
+                <option value={category.id}>{category.name} (tout)</option>
+              )}
               {category.children.map((child) => (
                 <option key={child.id} value={child.id}>
                   {child.name}

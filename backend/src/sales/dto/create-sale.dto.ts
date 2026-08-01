@@ -31,4 +31,8 @@ export class CreateSaleDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  orderId?: string;
 }

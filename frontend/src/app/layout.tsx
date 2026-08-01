@@ -9,13 +9,13 @@ import { Navbar } from '@/components/layout/navbar';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Bi3Echri — Gestion achat/vente',
+  title: 'bi3wechri.net — Gestion achat/vente',
   description: 'Gestion de stock, achats, ventes et analyse de marge',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Bi3Echri',
+    title: 'bi3wechri.net',
   },
 };
 
@@ -65,7 +65,7 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthProvider>
               <Navbar />
-              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 animate-fade-in-up">
+              <main className="w-full flex-1 px-4 py-6 animate-fade-in-up sm:px-6">
                 {children}
               </main>
             </AuthProvider>

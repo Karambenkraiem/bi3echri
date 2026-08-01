@@ -30,11 +30,30 @@ enum CashMovementType {
   EXPENSE
   MANUAL
   INVESTMENT
+  RETOUR
 }
 
 enum SupplierType {
   SOUK
   PARTICULIER
+}
+
+enum OrderType {
+  RESERVATION
+  ACHAT
+  NEGOCIATION
+}
+
+enum OrderStatus {
+  EN_ATTENTE
+  CONFIRMEE
+  ANNULEE
+  VENDU
+}
+
+enum MessageSender {
+  CLIENT
+  STAFF
 }
 
 model Supplier {
@@ -72,6 +91,7 @@ model User {
   sales         Sale[]         @relation("SaleSoldBy")
   cashMovements CashMovement[]
   expenses      Expense[]
+  messages      Message[]
 
   @@map("users")
 }
@@ -128,6 +148,7 @@ model Article {
   purchaseDate   DateTime
   purchaseSource String?
   expectedSalePrice Decimal?   @db.Decimal(10, 2)
+  floorPrice     Decimal?      @db.Decimal(10, 2)
   quantity       Int           @default(1)
   status         ArticleStatus @default(EN_STOCK)
   specs          Json?
@@ -137,10 +158,62 @@ model Article {
   updatedAt      DateTime      @updatedAt
   sale           Sale?
   photos         Photo[]
+  orders         Order[]
 
   @@map("articles")
   @@index([categoryId])
   @@index([status])
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  email     String?  @unique
+  phone     String?
+  name      String
+  password  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  orders    Order[]
+
+  @@map("clients")
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  articleId     String
+  article       Article     @relation(fields: [articleId], references: [id])
+  quantity      Int         @default(1)
+  type          OrderType
+  status        OrderStatus @default(EN_ATTENTE)
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  notes         String?
+  clientId      String?
+  client        Client?     @relation(fields: [clientId], references: [id])
+  messages      Message[]
+  retraitDeadline DateTime?
+  agreedPrice   Decimal?    @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("orders")
+  @@index([status])
+  @@index([articleId])
+}
+
+model Message {
+  id          String        @id @default(uuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender      MessageSender
+  body        String
+  createdById String?
+  createdBy   User?         @relation(fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+
+  @@map("messages")
+  @@index([orderId])
 }
 
 model Photo {

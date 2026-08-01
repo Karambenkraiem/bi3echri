@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Bi3Echri — Gestion achat/vente',
-    short_name: 'Bi3Echri',
+    name: 'bi3wechri.net — Gestion achat/vente',
+    short_name: 'bi3wechri.net',
     description: 'Gestion de stock, achats, ventes et analyse de marge',
     start_url: '/dashboard',
     display: 'standalone',

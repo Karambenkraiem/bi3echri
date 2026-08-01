@@ -50,7 +50,7 @@ export default function LoginPage() {
             <UserIcon className="h-8 w-8 text-white" />
           </div>
           <h1 className="mt-4 bg-gradient-to-r from-blue-600 via-violet-600 to-emerald-500 bg-clip-text text-2xl font-bold text-transparent">
-            Bi3Echri
+            bi3wechri.net
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Gestion achat / vente / stock

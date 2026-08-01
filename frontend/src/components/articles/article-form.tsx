@@ -20,12 +20,14 @@ import { SupplierSelect } from './supplier-select';
 
 const EMPTY_PC_SPECS = {
   marque: '',
-  processeur: '',
-  tailleEcran: '',
-  concept: '',
   type: '',
+  concept: '',
+  processeur: '',
+  carteGraphique: '',
   ram: '',
   stockage: '',
+  typeEcran: '',
+  tailleEcran: '',
 };
 
 function specsToForm(specs: Article['specs']) {
@@ -59,6 +61,7 @@ export function ArticleForm({
     purchaseDate: article ? article.purchaseDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
     purchaseSource: article?.purchaseSource ?? '',
     expectedSalePrice: article?.expectedSalePrice != null ? String(article.expectedSalePrice) : '',
+    floorPrice: article?.floorPrice != null ? String(article.floorPrice) : '',
     quantity: article ? String(article.quantity) : '1',
   });
   const [pcSpecs, setPcSpecs] = useState(specsToForm(article?.specs));
@@ -184,6 +187,7 @@ export function ArticleForm({
         purchaseDate: form.purchaseDate,
         purchaseSource: form.purchaseSource || undefined,
         expectedSalePrice: form.expectedSalePrice ? Number(form.expectedSalePrice) : undefined,
+        floorPrice: form.floorPrice ? Number(form.floorPrice) : undefined,
         quantity: Number(form.quantity),
         specs: isPc
           ? Object.fromEntries(
@@ -226,6 +230,10 @@ export function ArticleForm({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const message = isEdit
+      ? 'Enregistrer les modifications de cet article ?'
+      : 'Ajouter cet article au stock ?';
+    if (!confirm(message)) return;
     mutation.mutate();
   }
 
@@ -337,17 +345,45 @@ export function ArticleForm({
           />
         </div>
       </div>
-      <div>
-        <FieldLabel htmlFor="expectedSalePrice">Dernier prix prévu de vente (DT, optionnel)</FieldLabel>
-        <Input
-          id="expectedSalePrice"
-          type="number"
-          min="0"
-          step="0.001"
-          value={form.expectedSalePrice}
-          onChange={(e) => setForm({ ...form, expectedSalePrice: e.target.value })}
-          placeholder="Ex: 250"
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <FieldLabel htmlFor="expectedSalePrice">Prix affiché (DT, optionnel)</FieldLabel>
+          <Input
+            id="expectedSalePrice"
+            type="number"
+            min="0"
+            step="0.001"
+            value={form.expectedSalePrice}
+            onChange={(e) => setForm({ ...form, expectedSalePrice: e.target.value })}
+            placeholder="Ex: 250"
+          />
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Prix visible par tout le monde (boutique en ligne, préremplit le prix de vente).
+          </p>
+        </div>
+        <div>
+          <FieldLabel htmlFor="floorPrice">Dernier prix (DT, optionnel)</FieldLabel>
+          <Input
+            id="floorPrice"
+            type="number"
+            min="0"
+            step="0.001"
+            value={form.floorPrice}
+            onChange={(e) => setForm({ ...form, floorPrice: e.target.value })}
+            placeholder="Ex: 200"
+          />
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Prix plancher interne : alerte le vendeur en badge rouge pendant la
+            négociation, ne descendez pas en dessous.
+          </p>
+          {form.floorPrice &&
+            form.expectedSalePrice &&
+            Number(form.floorPrice) > Number(form.expectedSalePrice) && (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                Le dernier prix est supérieur au prix affiché.
+              </p>
+            )}
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -499,15 +535,6 @@ export function ArticleForm({
               />
             </div>
             <div>
-              <FieldLabel htmlFor="processeur">Processeur</FieldLabel>
-              <Input
-                id="processeur"
-                value={pcSpecs.processeur}
-                onChange={(e) => setPcSpecs({ ...pcSpecs, processeur: e.target.value })}
-                placeholder="Ex: Intel i5-12400"
-              />
-            </div>
-            <div>
               <FieldLabel htmlFor="type">Type</FieldLabel>
               <Select
                 id="type"
@@ -538,12 +565,21 @@ export function ArticleForm({
               </Select>
             </div>
             <div>
-              <FieldLabel htmlFor="tailleEcran">Taille écran</FieldLabel>
+              <FieldLabel htmlFor="processeur">Processeur</FieldLabel>
               <Input
-                id="tailleEcran"
-                value={pcSpecs.tailleEcran}
-                onChange={(e) => setPcSpecs({ ...pcSpecs, tailleEcran: e.target.value })}
-                placeholder="Ex: 15.6&quot; (vide si desktop)"
+                id="processeur"
+                value={pcSpecs.processeur}
+                onChange={(e) => setPcSpecs({ ...pcSpecs, processeur: e.target.value })}
+                placeholder="Ex: Intel i5-12400"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="carteGraphique">Carte graphique</FieldLabel>
+              <Input
+                id="carteGraphique"
+                value={pcSpecs.carteGraphique}
+                onChange={(e) => setPcSpecs({ ...pcSpecs, carteGraphique: e.target.value })}
+                placeholder="Ex: RTX 3060, Intel UHD Graphics..."
               />
             </div>
             <div>
@@ -562,6 +598,24 @@ export function ArticleForm({
                 value={pcSpecs.stockage}
                 onChange={(e) => setPcSpecs({ ...pcSpecs, stockage: e.target.value })}
                 placeholder="Ex: 512 Go SSD"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="typeEcran">Type d&apos;écran</FieldLabel>
+              <Input
+                id="typeEcran"
+                value={pcSpecs.typeEcran}
+                onChange={(e) => setPcSpecs({ ...pcSpecs, typeEcran: e.target.value })}
+                placeholder="Ex: Full HD, Tactile, OLED (vide si desktop)"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="tailleEcran">Taille écran</FieldLabel>
+              <Input
+                id="tailleEcran"
+                value={pcSpecs.tailleEcran}
+                onChange={(e) => setPcSpecs({ ...pcSpecs, tailleEcran: e.target.value })}
+                placeholder="Ex: 15.6&quot; (vide si desktop)"
               />
             </div>
           </div>

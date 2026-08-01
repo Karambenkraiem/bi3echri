@@ -57,6 +57,24 @@ export class TreasuryService {
     });
   }
 
+  recordReturn(
+    tx: Prisma.TransactionClient,
+    saleId: string,
+    amount: number,
+    createdById: string,
+    reason: string,
+  ) {
+    return tx.cashMovement.create({
+      data: {
+        type: CashMovementType.RETOUR,
+        amount: -Math.abs(amount),
+        saleId,
+        comment: reason,
+        createdById,
+      },
+    });
+  }
+
   recordExpense(
     tx: Prisma.TransactionClient,
     expenseId: string,

@@ -1,17 +1,18 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProtectedRoute } from '@/components/layout/protected-route';
 import { useAuth } from '@/lib/auth-context';
-import { api } from '@/lib/api';
-import { CashMovement, CashMovementType } from '@/lib/types';
+import { api, getAssetUrl } from '@/lib/api';
+import { CashMovement, CashMovementType, Sale } from '@/lib/types';
 import { formatDT } from '@/lib/format';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, FieldLabel } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
-import { PencilIcon, TrashIcon } from '@/components/ui/icons';
+import { PencilIcon, TrashIcon, BoxIcon } from '@/components/ui/icons';
 import { SortableHeader } from '@/components/ui/sortable-header';
 import { useSort } from '@/lib/use-sort';
 
@@ -156,6 +157,97 @@ function InvestForm() {
   );
 }
 
+function SaleMovementDetail({ movement }: { movement: CashMovement }) {
+  const { data: sale, isLoading, isError } = useQuery({
+    queryKey: ['sales', movement.saleId],
+    queryFn: () => api.get<Sale>(`/sales/${movement.saleId}`),
+    enabled: !!movement.saleId,
+    retry: false,
+  });
+
+  if (!movement.saleId || isError) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          Cette vente a depuis été annulée (retour en stock) — le détail de l&apos;article
+          n&apos;est plus disponible.
+        </p>
+        <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
+          <dt className="text-slate-500">Montant</dt>
+          <dd className="text-emerald-600">{formatDT(Number(movement.amount))}</dd>
+          <dt className="text-slate-500">Date</dt>
+          <dd>{new Date(movement.createdAt).toLocaleString('fr-FR')}</dd>
+          <dt className="text-slate-500">Commentaire</dt>
+          <dd>{movement.comment ?? '—'}</dd>
+          <dt className="text-slate-500">Par</dt>
+          <dd>{movement.createdBy?.name ?? '—'}</dd>
+        </dl>
+      </div>
+    );
+  }
+
+  if (isLoading || !sale) {
+    return <p className="text-sm text-slate-500">Chargement...</p>;
+  }
+
+  const photo = sale.article?.photos?.[0];
+  const purchasePrice = Number(sale.article?.purchasePrice ?? 0);
+  const margin = Number(sale.salePrice) - purchasePrice;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={getAssetUrl(photo.url)} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <BoxIcon className="h-6 w-6 text-slate-300" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-medium text-slate-900 dark:text-white">
+            {sale.article?.name ?? 'Article introuvable'}
+          </p>
+          <p className="text-sm text-slate-500">{sale.article?.category?.name}</p>
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
+        <dt className="text-slate-500">Prix de vente</dt>
+        <dd className="font-medium text-emerald-600">{formatDT(Number(sale.salePrice))}</dd>
+        <dt className="text-slate-500">Marge</dt>
+        <dd className={margin >= 0 ? 'text-emerald-600' : 'text-red-600'}>{formatDT(margin)}</dd>
+        <dt className="text-slate-500">Date de vente</dt>
+        <dd>{new Date(sale.saleDate).toLocaleDateString('fr-FR')}</dd>
+        <dt className="text-slate-500">Acheteur</dt>
+        <dd>{sale.buyerName || '—'}</dd>
+        <dt className="text-slate-500">Contact</dt>
+        <dd>{sale.buyerContact || '—'}</dd>
+        <dt className="text-slate-500">Canal</dt>
+        <dd>{sale.adChannel}</dd>
+        {sale.notes && (
+          <>
+            <dt className="text-slate-500">Notes</dt>
+            <dd className="whitespace-pre-wrap">{sale.notes}</dd>
+          </>
+        )}
+        <dt className="text-slate-500">Vendu par</dt>
+        <dd>{sale.soldBy?.name ?? '—'}</dd>
+      </dl>
+
+      {sale.article && (
+        <Link
+          href={`/articles/${sale.article.id}`}
+          className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+        >
+          Voir la fiche article →
+        </Link>
+      )}
+    </div>
+  );
+}
+
 function MovementDetailModal({
   movement,
   canManage,
@@ -237,7 +329,7 @@ function MovementDetailModal({
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="grid grid-cols-2 gap-3 text-sm">
+      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
         <dt className="text-slate-500">Type</dt>
         <dd>{TYPE_LABELS[movement.type]}</dd>
         <dt className="text-slate-500">Montant</dt>
@@ -425,15 +517,22 @@ function CanaouiteContent() {
         )}
       </Card>
 
-      <Modal open={!!detailTarget} onClose={() => setDetailTarget(null)} title="Détail du mouvement">
-        {detailTarget && (
-          <MovementDetailModal
-            movement={detailTarget}
-            canManage={canManage(detailTarget)}
-            minAmount={detailTarget.type === 'INVESTMENT' ? 0 : undefined}
-            onClose={() => setDetailTarget(null)}
-          />
-        )}
+      <Modal
+        open={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        title={detailTarget?.type === 'SALE' ? 'Article vendu' : 'Détail du mouvement'}
+      >
+        {detailTarget &&
+          (detailTarget.type === 'SALE' ? (
+            <SaleMovementDetail movement={detailTarget} />
+          ) : (
+            <MovementDetailModal
+              movement={detailTarget}
+              canManage={canManage(detailTarget)}
+              minAmount={detailTarget.type === 'INVESTMENT' ? 0 : undefined}
+              onClose={() => setDetailTarget(null)}
+            />
+          ))}
       </Modal>
     </div>
   );

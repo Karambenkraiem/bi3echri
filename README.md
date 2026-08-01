@@ -1,25 +1,29 @@
-# Bi3Echri — Gestion achat/vente d'articles
+# bi3wechri.net — Gestion achat/vente d'articles
 
 Application de gestion de stock, achats et ventes d'articles divers (PC, matériel de
 bricolage, pièces informatiques, petit électroménager, etc.), avec suivi des marges et
 tableau de bord d'aide à la décision.
 
 - **Backend** : NestJS + Prisma + PostgreSQL (API REST, JWT, rôles admin/vendeur)
-- **Frontend** : Next.js (App Router) + Tailwind CSS + Recharts, responsive et installable
-  en PWA sur mobile
+- **Frontend (back office)** : Next.js (App Router) + Tailwind CSS + Recharts, responsive
+  et installable en PWA sur mobile — usage interne (staff)
+- **Storefront (boutique en ligne)** : Next.js (App Router) + Tailwind CSS + Framer
+  Motion — site public, accessible sans compte, pour que les clients parcourent le
+  catalogue et soumettent une demande de réservation ou d'achat
 - **Base de données** : PostgreSQL
-- **Dockerisé** : backend, frontend et PostgreSQL tournent chacun en conteneur, avec un
-  compose dédié pour le développement et un autre pour la production
+- **Dockerisé** : backend, frontend, storefront et PostgreSQL tournent chacun en
+  conteneur, avec un compose dédié pour le développement et un autre pour la production
 
 ## Structure du projet
 
 ```
 Bi3Echri/
-├── docker-compose.yml       # Dev : postgres + adminer + backend + frontend (hot-reload)
+├── docker-compose.yml       # Dev : postgres + adminer + backend + frontend + storefront (hot-reload)
 ├── docker-compose.prod.yml  # Prod : images buildées, pas de bind mount
 ├── .env.prod.example        # Variables requises pour docker-compose.prod.yml
 ├── backend/                 # API NestJS (Dockerfile multi-stage : dev / build / production)
-└── frontend/                # App Next.js (Dockerfile multi-stage : dev / build / production)
+├── frontend/                # Back office Next.js — staff (Dockerfile multi-stage)
+└── storefront/              # Boutique en ligne Next.js — clients (Dockerfile multi-stage)
 ```
 
 ## Prérequis
@@ -29,13 +33,15 @@ Bi3Echri/
 
 ## Démarrage avec Docker (recommandé)
 
-Tout le projet (PostgreSQL + backend + frontend) démarre en une seule commande :
+Tout le projet (PostgreSQL + backend + frontend + storefront) démarre en une seule
+commande :
 
 ```bash
 docker compose up -d --build
 ```
 
-- Frontend : http://localhost:3000
+- Frontend (back office, staff) : http://localhost:3000
+- Storefront (boutique en ligne, public) : http://localhost:3002
 - Backend : http://localhost:3001/api
 - Adminer (admin DB) : http://localhost:8080
 - Postgres : `localhost:5432` (user/password/db : `bi3echri`/`bi3echri`/`bi3echri`)
@@ -132,6 +138,19 @@ npm run dev               # app sur http://localhost:3000
 Variable d'environnement (`frontend/.env.local`) :
 - `NEXT_PUBLIC_API_URL` — URL de l'API backend (défaut `http://localhost:3001/api`)
 
+### Storefront (boutique en ligne)
+
+```bash
+cd storefront
+npm install
+npm run dev               # app sur http://localhost:3000 (mappé sur 3002 via Docker)
+```
+
+Variables d'environnement (`storefront/.env.local`) :
+- `NEXT_PUBLIC_API_URL` — URL de l'API backend (défaut `http://localhost:3001/api`)
+- `NEXT_PUBLIC_BACKOFFICE_URL` — URL du back office, utilisée pour rediriger un
+  vendeur/admin qui se connecte par erreur depuis la boutique (défaut `http://localhost:3000`)
+
 ## Fonctionnalités
 
 - **Authentification** par JWT, deux rôles : `ADMIN` (gestion des utilisateurs) et
@@ -183,14 +202,58 @@ Variable d'environnement (`frontend/.env.local`) :
   **supprimer** l'entrée (le mouvement de caisse lié est mis à jour ou supprimé en même
   temps, pour garder le solde cohérent). Tableau triable par colonne, filtrable par
   utilisateur.
-- **Dernier prix prévu de vente** (optionnel, sur l'article) : champ indicatif
-  renseigné à l'ajout/modification d'un article pour noter le prix de vente visé. Il
-  préremplit le champ "Prix de vente" au moment de vendre l'article (reste modifiable),
-  et n'a aucun effet sur la Canaouite tant que la vente n'est pas confirmée.
+- **Deux prix par article** (optionnels, formulaire d'ajout/modification) :
+  - **Prix affiché** : visible par tout le monde (boutique en ligne incluse), préremplit
+    le champ "Prix de vente" au moment de vendre l'article (reste modifiable), et n'a
+    aucun effet sur la Canaouite tant que la vente n'est pas confirmée.
+  - **Dernier prix** : prix plancher **interne**, jamais exposé publiquement. Affiché en
+    **badge rouge** dans la discussion de négociation d'une commande (`/commandes`, back
+    office) pour rappeler au vendeur de ne pas descendre en dessous ; un avertissement
+    apparaît aussi si le message en cours de rédaction contient un montant inférieur.
 - **Vente** : marquer un article comme vendu avec prix de vente, acheteur (nom/contact)
   et canal d'annonce (Leboncoin, Vinted, Facebook Marketplace, eBay, autre) — la marge
   est calculée automatiquement (prix de vente − prix d'achat)
 - **Historique des ventes** avec marge par transaction
+- **Boutique en ligne** (`storefront/`, site public séparé du back office, voir
+  [Structure du projet](#structure-du-projet)) : accueil avec bannière carrousel animée
+  (nouveautés), catégories, catalogue filtrable, fiche produit (galerie photo,
+  caractéristiques, prix) avec boutons **Réserver** / **Acheter**. Aucune inscription
+  requise : le visiteur (invité) laisse juste nom/téléphone/email optionnel pour valider
+  sa demande — un compte client optionnel permet en plus de retrouver l'historique de ses
+  demandes (`/compte`). Seuls les articles **en stock** avec un **prix de vente prévu**
+  renseigné apparaissent en boutique ; le prix d'achat (coût interne) n'est jamais exposé
+  publiquement. Pied de page avec les coordonnées de contact (adresse, téléphone).
+- **Profil client** (`/compte/profil`, storefront) : un client inscrit peut modifier son
+  nom, son téléphone et sa **photo de profil**, comme un utilisateur du back office
+  (`/profile`) — l'email reste non modifiable (identifiant de connexion).
+- **Passerelle de connexion vers le back office** : si un vendeur ou un admin saisit ses
+  identifiants sur la page de connexion du storefront (`/compte/connexion`) par erreur,
+  l'application détecte qu'il s'agit d'un compte staff (pas d'un compte client) et le
+  redirige automatiquement, déjà connecté, vers le back office (`/dashboard`) — pas besoin
+  de ressaisir ses identifiants une seconde fois.
+- **Commandes en ligne** (`/commandes`, back office) : chaque demande de réservation ou
+  d'achat soumise depuis la boutique en ligne apparaît ici avec les coordonnées du client,
+  filtrable par statut (En attente / Confirmée / Annulée). Un badge dans la barre de
+  navigation (calqué sur celui de la Canaouite) affiche en continu le nombre de demandes
+  en attente. Le staff confirme ou annule la demande, et ajoute des notes internes ; la
+  finalisation réelle (vente, mise à jour du stock) reste manuelle via les écrans
+  Stock/Vente existants — la commande en ligne n'est qu'une demande, pas une vente
+  automatique.
+- **Gestion des clients** (`/clients`, back office, ouvert à l'admin et au vendeur) :
+  liste des comptes créés par les visiteurs de la boutique en ligne (nom, email,
+  téléphone, nombre de commandes, date d'inscription), recherche par nom/email/téléphone.
+  Cliquer sur un client ouvre sa fiche (`/clients/[id]`) avec l'historique complet de ses
+  réservations et achats.
+- **Négociation par chat** (rattachée à chaque commande en ligne) : le client peut
+  discuter/négocier le prix directement sur sa demande, côté boutique (`/suivi/{id}` —
+  accessible sans compte via ce lien, ou depuis `/compte` si connecté) et côté back office
+  (onglet "Discussion" dans le détail de la commande sur `/commandes`). Le **dernier
+  prix** (prix plancher) de l'article est affiché en **bandeau rouge persistant** côté
+  staff pendant la négociation (avec un avertissement si le message en cours de rédaction
+  contient un montant inférieur), tandis que le client voit le **prix affiché** en
+  bandeau informatif. Messagerie par sondage (rafraîchissement toutes les 5 secondes,
+  pas de WebSocket) ; aucune donnée interne (prix d'achat, dernier prix) n'est exposée
+  dans le fil côté client.
 - **Tableau de bord** (aide à la décision) :
   - Marge par catégorie (quelles catégories sont les plus rentables)
   - Chiffre d'affaires et marge dans le temps (tendance mensuelle)
@@ -200,9 +263,9 @@ Variable d'environnement (`frontend/.env.local`) :
 - **Thème clair/sombre** : bascule manuelle dans la barre de navigation (icône
   soleil/lune), préférence mémorisée par navigateur (`localStorage`), appliquée sans
   flash au chargement. Par défaut, suit la préférence système au premier lancement.
-- **Page de connexion** : habillage sombre "tech" (dégradé, halos, grille en filigrane),
-  inspiré d'une maquette fournie par l'utilisateur — recréé en CSS, pas d'image externe
-  utilisée.
+- **Page de connexion** : reprend le fond adaptatif partagé de l'application (halos
+  dégradés, grille en filigrane, sensible au thème clair/sombre) et les composants
+  d'interface communs (Card, Button), pour rester cohérente avec le reste du back office.
 - **Mode démonstration** (`/settings`, admin) : interrupteur global, **désactivé par
   défaut** (y compris après un rebuild Docker, puisque persisté en base). Quand activé,
   la page de connexion affiche une liste d'accès rapide (comptes Admin et Vendeur de
@@ -228,6 +291,13 @@ Variable d'environnement (`frontend/.env.local`) :
   l'admin peut alimenter la caisse (montant positif, bloqué à 403/400 pour le vendeur) ;
   solde recalculé correctement après achat/vente/dépense/ajustement/investissement.
 - Profil : mise à jour nom/téléphone/bio et upload de photo de profil testés via API.
+- Boutique en ligne / commandes : testé de bout en bout via API — inscription et
+  connexion client, catalogue public (`/api/public/products`, `/api/public/categories`)
+  accessible sans token, commande créée en tant qu'invité et en tant que client connecté
+  (rattachée à son compte), visible côté staff (`/api/orders`, protégé — 401 sans token),
+  confirmation d'une commande par le staff. Vérifié explicitement qu'aucune réponse des
+  endpoints `/public/*` n'expose `purchasePrice` (coût d'achat interne) — un premier essai
+  l'exposait par erreur dans la réponse de création de commande, corrigé avant livraison.
 - Frontend : build de production (`next build`) sans erreur TypeScript, pages
   server-rendues vérifiées (login, dashboard, manifest PWA).
 - Docker : `docker compose up -d --build` testé à partir de zéro (`docker compose down`

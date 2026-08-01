@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { api, getAssetUrl } from '@/lib/api';
 import { formatDT } from '@/lib/format';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import {
   SunIcon,
   MoonIcon,
@@ -18,12 +19,16 @@ import {
   BuildingIcon,
   ReceiptIcon,
   UsersIcon,
+  UserIcon,
   GearIcon,
+  BellIcon,
 } from '@/components/ui/icons';
 
 const LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: ChartIcon },
   { href: '/articles', label: 'Stock', icon: BoxIcon },
+  { href: '/commandes', label: 'Commandes', icon: BellIcon },
+  { href: '/clients', label: 'Clients', icon: UserIcon },
   { href: '/sales', label: 'Ventes', icon: TagIcon },
   { href: '/categories', label: 'Catégories', icon: FolderIcon },
   { href: '/fournisseurs', label: 'Fournisseurs', icon: BuildingIcon },
@@ -46,19 +51,21 @@ function ThemeToggle() {
   );
 }
 
-function Avatar({ url, name }: { url?: string | null; name: string }) {
+function Avatar({ url, name, className = 'h-8 w-8' }: { url?: string | null; name: string; className?: string }) {
   if (url) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
         src={getAssetUrl(url)}
         alt={name}
-        className="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800"
+        className={`${className} rounded-full object-cover ring-2 ring-white dark:ring-slate-800`}
       />
     );
   }
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white ring-2 ring-white dark:ring-slate-800">
+    <div
+      className={`${className} flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white ring-2 ring-white dark:ring-slate-800`}
+    >
       {name.slice(0, 1).toUpperCase()}
     </div>
   );
@@ -83,8 +90,72 @@ function CanaouiteBadge() {
       }`}
       title="Voir l'historique de la Canaouite"
     >
-      Canaouite : {formatDT(data.balance)}
+      {formatDT(data.balance)}
     </Link>
+  );
+}
+
+function UserMenu({ user, logout }: { user: { name: string; role: string; avatarUrl?: string | null }; logout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 rounded-full transition-opacity hover:opacity-80"
+        aria-label="Menu utilisateur"
+      >
+        <Avatar url={user.avatarUrl} name={user.name} />
+      </button>
+      {open && (
+        <div className="animate-fade-in-up absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-200/70 bg-white p-1.5 shadow-lg dark:border-slate-800/70 dark:bg-slate-900">
+          <div className="flex items-center gap-2 px-2 py-2">
+            <Avatar url={user.avatarUrl} name={user.name} className="h-9 w-9" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                {user.name}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {user.role === 'ADMIN' ? 'Admin' : 'Vendeur'}
+              </p>
+            </div>
+          </div>
+          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className="block rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Mon profil
+          </Link>
+          <button
+            onClick={logout}
+            className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            Déconnexion
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -99,62 +170,50 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md dark:border-slate-800/70 dark:bg-slate-950/80">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div className="flex min-w-0 items-center gap-6">
+      <div className="px-4 sm:px-6">
+        <div className="flex items-center justify-between py-3">
           <Link
             href="/dashboard"
             className="shrink-0 bg-gradient-to-r from-blue-600 via-violet-600 to-emerald-500 bg-clip-text text-lg font-bold text-transparent"
           >
-            Bi3Echri
+            bi3wechri.net
           </Link>
-          <nav className="hidden min-w-0 gap-1 overflow-x-auto md:flex">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  pathname.startsWith(link.href)
-                    ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm shadow-blue-600/25'
-                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                }`}
-              >
-                <link.icon className="hidden h-4 w-4 lg:block" />
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="hidden shrink-0 items-center gap-3 md:flex">
-          <ThemeToggle />
-          <CanaouiteBadge />
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <Avatar url={user.avatarUrl} name={user.name} />
-            <span className="text-sm text-slate-500 dark:text-slate-400">
-              {user.name} · {user.role === 'ADMIN' ? 'Admin' : 'Vendeur'}
-            </span>
-          </Link>
+          <div className="hidden shrink-0 items-center gap-2 md:flex">
+            <ThemeToggle />
+            <CanaouiteBadge />
+            <NotificationBell />
+            <UserMenu user={user} logout={logout} />
+          </div>
           <button
-            onClick={logout}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:text-slate-200 dark:hover:border-red-900/50 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            className="rounded-lg border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 md:hidden"
+            onClick={() => setOpen((o) => !o)}
           >
-            Déconnexion
+            Menu
           </button>
         </div>
-        <button
-          className="rounded-lg border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 md:hidden"
-          onClick={() => setOpen((o) => !o)}
-        >
-          Menu
-        </button>
+        <nav className="hidden gap-1 overflow-x-auto pb-2.5 md:flex">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                pathname.startsWith(link.href)
+                  ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm shadow-blue-600/25'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+              }`}
+            >
+              <link.icon className="h-4 w-4" />
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
       {open && (
         <nav className="animate-fade-in-up flex flex-col gap-1 border-t border-slate-200 px-4 py-3 md:hidden dark:border-slate-800">
           <div className="mb-2 flex items-center gap-3">
             <ThemeToggle />
             <CanaouiteBadge />
+            <NotificationBell />
           </div>
           {links.map((link) => (
             <Link

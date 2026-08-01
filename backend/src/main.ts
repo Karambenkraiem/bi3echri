@@ -7,8 +7,12 @@ import { UPLOADS_ROOT } from './common/uploads.constants';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  const allowedOrigins = [
+    process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    process.env.STOREFRONT_URL ?? 'http://localhost:3002',
+  ];
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
   });
 

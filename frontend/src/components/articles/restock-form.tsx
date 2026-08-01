@@ -30,6 +30,7 @@ export function RestockForm({ article, onSuccess }: { article: Article; onSucces
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!confirm(`Ajouter ${quantity} unité(s) au stock de "${article.name}" ?`)) return;
     mutation.mutate();
   }
 

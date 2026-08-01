@@ -67,6 +67,7 @@ export interface Article {
   purchaseDate: string;
   purchaseSource?: string | null;
   expectedSalePrice?: string | number | null;
+  floorPrice?: string | number | null;
   quantity: number;
   status: ArticleStatus;
   specs?: ArticleSpecs | null;
@@ -135,6 +136,7 @@ export const AD_CHANNELS = [
   'Vinted',
   'Facebook Marketplace',
   'eBay',
+  'Site web',
   'Autre',
 ];
 
@@ -151,4 +153,48 @@ export interface Supplier {
   location?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type OrderType = 'RESERVATION' | 'ACHAT' | 'NEGOCIATION';
+export type OrderStatus = 'EN_ATTENTE' | 'CONFIRMEE' | 'ANNULEE' | 'VENDU';
+
+export interface Order {
+  id: string;
+  articleId: string;
+  article: Article;
+  quantity: number;
+  type: OrderType;
+  status: OrderStatus;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string | null;
+  notes?: string | null;
+  clientId?: string | null;
+  client?: { id: string; name: string; email?: string | null; phone?: string | null } | null;
+  retraitDeadline?: string | null;
+  agreedPrice?: string | number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MessageSender = 'CLIENT' | 'STAFF';
+
+export interface Message {
+  id: string;
+  orderId: string;
+  sender: MessageSender;
+  body: string;
+  createdById?: string | null;
+  createdBy?: { name: string } | null;
+  createdAt: string;
+}
+
+export interface Client {
+  id: string;
+  email?: string | null;
+  name: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  createdAt: string;
+  _count?: { orders: number };
 }

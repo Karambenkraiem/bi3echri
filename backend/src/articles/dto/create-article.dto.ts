@@ -45,6 +45,11 @@ export class CreateArticleDto {
   @IsOptional()
   expectedSalePrice?: number;
 
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  floorPrice?: number;
+
   @IsInt()
   @Min(1)
   @IsOptional()

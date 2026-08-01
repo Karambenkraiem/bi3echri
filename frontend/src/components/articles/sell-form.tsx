@@ -4,18 +4,39 @@ import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Article, AD_CHANNELS } from '@/lib/types';
-import { Input, FieldLabel, Select } from '@/components/ui/input';
+import { Input, FieldLabel, Select, Textarea } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatDT } from '@/lib/format';
 
-export function SellForm({ article, onSuccess }: { article: Article; onSuccess: () => void }) {
+export function SellForm({
+  article,
+  onSuccess,
+  initialSalePrice,
+  initialBuyerName,
+  initialBuyerContact,
+  initialAdChannel,
+  orderId,
+}: {
+  article: Article;
+  onSuccess: () => void;
+  initialSalePrice?: number | string | null;
+  initialBuyerName?: string;
+  initialBuyerContact?: string;
+  initialAdChannel?: string;
+  orderId?: string;
+}) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
-    salePrice: article.expectedSalePrice != null ? String(article.expectedSalePrice) : '',
+    salePrice:
+      initialSalePrice != null
+        ? String(initialSalePrice)
+        : article.expectedSalePrice != null
+          ? String(article.expectedSalePrice)
+          : '',
     saleDate: new Date().toISOString().slice(0, 10),
-    buyerName: '',
-    buyerContact: '',
-    adChannel: AD_CHANNELS[0],
+    buyerName: initialBuyerName ?? '',
+    buyerContact: initialBuyerContact ?? '',
+    adChannel: initialAdChannel ?? AD_CHANNELS[0],
     notes: '',
   });
   const [error, setError] = useState<string | null>(null);
@@ -29,11 +50,13 @@ export function SellForm({ article, onSuccess }: { article: Article; onSuccess: 
         buyerContact: form.buyerContact || undefined,
         adChannel: form.adChannel,
         notes: form.notes || undefined,
+        orderId,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       onSuccess();
     },
     onError: (err: unknown) => {
@@ -44,6 +67,7 @@ export function SellForm({ article, onSuccess }: { article: Article; onSuccess: 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!confirm(`Enregistrer la vente de "${article.name}" pour ${form.salePrice} DT ?`)) return;
     mutation.mutate();
   }
 
@@ -122,10 +146,11 @@ export function SellForm({ article, onSuccess }: { article: Article; onSuccess: 
       </div>
       <div>
         <FieldLabel htmlFor="notes">Notes (optionnel)</FieldLabel>
-        <Input
+        <Textarea
           id="notes"
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          rows={3}
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}

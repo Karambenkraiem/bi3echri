@@ -58,6 +58,7 @@ export class ArticlesService {
           purchaseDate: new Date(dto.purchaseDate),
           purchaseSource: dto.purchaseSource,
           expectedSalePrice: dto.expectedSalePrice,
+          floorPrice: dto.floorPrice,
           quantity: dto.quantity,
           specs: dto.specs as Prisma.InputJsonValue,
           createdById,

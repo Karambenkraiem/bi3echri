@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProtectedRoute } from '@/components/layout/protected-route';
@@ -8,10 +8,11 @@ import { api, getAssetUrl } from '@/lib/api';
 import { Article, ArticleStatus, Category, Condition } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/input';
+import { Select, FieldLabel } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { PencilIcon, TrashIcon } from '@/components/ui/icons';
 import { SortableHeader } from '@/components/ui/sortable-header';
+import { EditableNumberCell } from '@/components/ui/editable-number-cell';
 import { ArticleForm } from '@/components/articles/article-form';
 import { SellForm } from '@/components/articles/sell-form';
 import { CategorySelect } from '@/components/articles/category-select';
@@ -20,7 +21,7 @@ import { useSort } from '@/lib/use-sort';
 
 const STATUS_LABELS: Record<ArticleStatus, string> = {
   EN_STOCK: 'En stock',
-  RESERVE: 'Réservé',
+  RESERVE: 'En attente de retrait',
   VENDU: 'Vendu',
 };
 
@@ -36,6 +37,7 @@ type SortKey =
   | 'quantity'
   | 'purchasePrice'
   | 'expectedSalePrice'
+  | 'floorPrice'
   | 'purchaseDate'
   | 'status';
 
@@ -55,17 +57,31 @@ function ArticlesPageContent() {
   });
 
   const { data: articles, isLoading } = useQuery({
-    queryKey: ['articles', statusFilter, categoryFilter],
+    queryKey: ['articles', statusFilter],
     queryFn: () => {
-      const params = new URLSearchParams();
-      if (statusFilter) params.set('status', statusFilter);
-      if (categoryFilter) params.set('categoryId', categoryFilter);
-      const qs = params.toString();
-      return api.get<Article[]>(`/articles${qs ? `?${qs}` : ''}`);
+      const qs = statusFilter ? `?status=${statusFilter}` : '';
+      return api.get<Article[]>(`/articles${qs}`);
     },
   });
 
-  const filtered = articles?.filter((a) => !conditionFilter || a.condition === conditionFilter);
+  // Sélectionner une catégorie mère filtre aussi sur toutes ses sous-catégories.
+  const categoryIdsToMatch = useMemo(() => {
+    if (!categoryFilter || !categories) return null;
+    for (const top of categories) {
+      if (top.id === categoryFilter) {
+        return new Set([top.id, ...(top.children?.map((c) => c.id) ?? [])]);
+      }
+      const child = top.children?.find((c) => c.id === categoryFilter);
+      if (child) return new Set([child.id]);
+    }
+    return new Set([categoryFilter]);
+  }, [categoryFilter, categories]);
+
+  const filtered = articles?.filter((a) => {
+    if (categoryIdsToMatch && !categoryIdsToMatch.has(a.categoryId)) return false;
+    if (conditionFilter && a.condition !== conditionFilter) return false;
+    return true;
+  });
 
   const { sorted, sortKey, sortDirection, toggleSort } = useSort<Article, SortKey>(
     filtered,
@@ -81,6 +97,8 @@ function ArticlesPageContent() {
           return Number(a.purchasePrice);
         case 'expectedSalePrice':
           return a.expectedSalePrice != null ? Number(a.expectedSalePrice) : -1;
+        case 'floorPrice':
+          return a.floorPrice != null ? Number(a.floorPrice) : -1;
         case 'purchaseDate':
           return a.purchaseDate;
         case 'status':
@@ -95,6 +113,24 @@ function ArticlesPageContent() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['articles'] }),
   });
 
+  const updateFieldMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<Pick<Article, 'quantity' | 'purchasePrice' | 'expectedSalePrice' | 'floorPrice'>>;
+    }) => api.patch<Article>(`/articles/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
+    },
+    onError: (err: unknown) => {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la modification');
+    },
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -102,37 +138,51 @@ function ArticlesPageContent() {
         <Button onClick={() => setShowAddModal(true)}>+ Ajouter un article</Button>
       </div>
 
-      <Card className="flex flex-wrap gap-3">
-        <Select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as ArticleStatus | '')}
-          className="w-auto"
-        >
-          <option value="">Tous les statuts</option>
-          <option value="EN_STOCK">En stock</option>
-          <option value="RESERVE">Réservé</option>
-          <option value="VENDU">Vendu</option>
-        </Select>
-        <CategorySelect
-          categories={categories}
-          placeholder="Toutes les catégories"
-          placeholderDisabled={false}
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="w-auto"
-        />
-        <Select
-          value={conditionFilter}
-          onChange={(e) => setConditionFilter(e.target.value as Condition | '')}
-          className="w-auto"
-        >
-          <option value="">Neuf et occasion</option>
-          <option value="NEUF">Neuf</option>
-          <option value="OCCASION">Occasion</option>
-        </Select>
-      </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr] lg:items-start">
+        <aside className="lg:sticky lg:top-20">
+          <Card className="flex flex-col gap-4">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Filtres</h2>
+            <div>
+              <FieldLabel htmlFor="statusFilter">Statut</FieldLabel>
+              <Select
+                id="statusFilter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ArticleStatus | '')}
+              >
+                <option value="">Tous les statuts</option>
+                <option value="EN_STOCK">En stock</option>
+                <option value="RESERVE">En attente de retrait</option>
+                <option value="VENDU">Vendu</option>
+              </Select>
+            </div>
+            <div>
+              <FieldLabel htmlFor="categoryFilter">Catégorie</FieldLabel>
+              <CategorySelect
+                id="categoryFilter"
+                categories={categories}
+                placeholder="Toutes les catégories"
+                placeholderDisabled={false}
+                includeParents
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="conditionFilter">État</FieldLabel>
+              <Select
+                id="conditionFilter"
+                value={conditionFilter}
+                onChange={(e) => setConditionFilter(e.target.value as Condition | '')}
+              >
+                <option value="">Neuf et occasion</option>
+                <option value="NEUF">Neuf</option>
+                <option value="OCCASION">Occasion</option>
+              </Select>
+            </div>
+          </Card>
+        </aside>
 
-      <Card className="overflow-x-auto p-0">
+        <Card className="overflow-x-auto p-0">
         {isLoading ? (
           <p className="p-4 text-sm text-slate-500">Chargement...</p>
         ) : !sorted || sorted.length === 0 ? (
@@ -175,7 +225,14 @@ function ArticlesPageContent() {
                   direction={sortDirection}
                   onClick={() => toggleSort('expectedSalePrice')}
                 >
-                  Prix de vente prévu
+                  Prix affiché
+                </SortableHeader>
+                <SortableHeader
+                  active={sortKey === 'floorPrice'}
+                  direction={sortDirection}
+                  onClick={() => toggleSort('floorPrice')}
+                >
+                  Dernier prix
                 </SortableHeader>
                 <SortableHeader
                   active={sortKey === 'purchaseDate'}
@@ -235,15 +292,52 @@ function ArticlesPageContent() {
                     {article.category.name}
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                    {article.quantity}
+                    <EditableNumberCell
+                      value={article.quantity}
+                      label="la quantité"
+                      format={(v) => String(v ?? 0)}
+                      step="1"
+                      min="1"
+                      onSave={(newValue) =>
+                        updateFieldMutation.mutate({ id: article.id, data: { quantity: newValue } })
+                      }
+                    />
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                    {formatDT(Number(article.purchasePrice))}
+                    <EditableNumberCell
+                      value={Number(article.purchasePrice)}
+                      label="le prix d'achat"
+                      format={(v) => formatDT(v ?? 0)}
+                      onSave={(newValue) =>
+                        updateFieldMutation.mutate({
+                          id: article.id,
+                          data: { purchasePrice: newValue },
+                        })
+                      }
+                    />
                   </td>
                   <td className="px-4 py-3 font-medium text-violet-600 dark:text-violet-400">
-                    {article.expectedSalePrice != null
-                      ? formatDT(Number(article.expectedSalePrice))
-                      : '—'}
+                    <EditableNumberCell
+                      value={article.expectedSalePrice != null ? Number(article.expectedSalePrice) : null}
+                      label="le prix affiché"
+                      format={(v) => (v != null ? formatDT(v) : '—')}
+                      onSave={(newValue) =>
+                        updateFieldMutation.mutate({
+                          id: article.id,
+                          data: { expectedSalePrice: newValue },
+                        })
+                      }
+                    />
+                  </td>
+                  <td className="px-4 py-3 font-medium text-red-600 dark:text-red-400">
+                    <EditableNumberCell
+                      value={article.floorPrice != null ? Number(article.floorPrice) : null}
+                      label="le dernier prix"
+                      format={(v) => (v != null ? formatDT(v) : '—')}
+                      onSave={(newValue) =>
+                        updateFieldMutation.mutate({ id: article.id, data: { floorPrice: newValue } })
+                      }
+                    />
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {new Date(article.purchaseDate).toLocaleDateString('fr-FR')}
@@ -292,6 +386,7 @@ function ArticlesPageContent() {
           </table>
         )}
       </Card>
+      </div>
 
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Ajouter un article">
         <ArticleForm onSuccess={() => setShowAddModal(false)} />

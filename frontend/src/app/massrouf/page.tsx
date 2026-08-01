@@ -92,7 +92,7 @@ function ExpenseDetailModal({
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="grid grid-cols-2 gap-3 text-sm">
+      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
         <dt className="text-slate-500">Montant</dt>
         <dd className="font-medium text-red-600">{formatDT(Number(expense.amount))}</dd>
         <dt className="text-slate-500">Date</dt>
