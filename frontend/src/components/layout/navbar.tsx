@@ -9,6 +9,7 @@ import { useTheme } from '@/lib/theme-context';
 import { api, getAssetUrl } from '@/lib/api';
 import { formatDT } from '@/lib/format';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { Article } from '@/lib/types';
 import {
   SunIcon,
   MoonIcon,
@@ -22,11 +23,13 @@ import {
   UserIcon,
   GearIcon,
   BellIcon,
+  ClockIcon,
 } from '@/components/ui/icons';
 
 const LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: ChartIcon },
   { href: '/articles', label: 'Stock', icon: BoxIcon },
+  { href: '/preparation', label: 'À préparer', icon: ClockIcon },
   { href: '/commandes', label: 'Commandes', icon: BellIcon },
   { href: '/clients', label: 'Clients', icon: UserIcon },
   { href: '/sales', label: 'Ventes', icon: TagIcon },
@@ -92,6 +95,21 @@ function CanaouiteBadge() {
     >
       {formatDT(data.balance)}
     </Link>
+  );
+}
+
+function PreparationCount() {
+  const { data } = useQuery({
+    queryKey: ['articles', 'not-ready-count'],
+    queryFn: () => api.get<Article[]>('/articles'),
+    refetchInterval: 60_000,
+  });
+  const count = data?.filter((a) => !a.readyForPublication).length ?? 0;
+  if (!count) return null;
+  return (
+    <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+      {count}
+    </span>
   );
 }
 
@@ -204,6 +222,7 @@ export function Navbar() {
             >
               <link.icon className="h-4 w-4" />
               {link.label}
+              {link.href === '/preparation' && <PreparationCount />}
             </Link>
           ))}
         </nav>
@@ -228,6 +247,7 @@ export function Navbar() {
             >
               <link.icon className="h-4 w-4" />
               {link.label}
+              {link.href === '/preparation' && <PreparationCount />}
             </Link>
           ))}
           <Link

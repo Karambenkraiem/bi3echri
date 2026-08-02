@@ -70,6 +70,8 @@ export interface Article {
   floorPrice?: string | number | null;
   quantity: number;
   status: ArticleStatus;
+  readyForPublication: boolean;
+  notReadyReason?: string | null;
   specs?: ArticleSpecs | null;
   photos?: Photo[];
   createdAt: string;

@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -58,4 +59,12 @@ export class CreateArticleDto {
   @IsObject()
   @IsOptional()
   specs?: Record<string, string | number | undefined>;
+
+  @IsBoolean()
+  @IsOptional()
+  readyForPublication?: boolean;
+
+  @IsString()
+  @IsOptional()
+  notReadyReason?: string;
 }

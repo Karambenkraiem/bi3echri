@@ -53,6 +53,7 @@ export class StorefrontService {
     const where: Prisma.ArticleWhereInput = {
       status: ArticleStatus.EN_STOCK,
       expectedSalePrice: { not: null },
+      readyForPublication: true,
     };
     if (query.categoryId) {
       where.categoryId = query.categoryId;
@@ -76,7 +77,12 @@ export class StorefrontService {
 
   async findProduct(id: string) {
     const article = await this.prisma.article.findFirst({
-      where: { id, status: ArticleStatus.EN_STOCK, expectedSalePrice: { not: null } },
+      where: {
+        id,
+        status: ArticleStatus.EN_STOCK,
+        expectedSalePrice: { not: null },
+        readyForPublication: true,
+      },
       include: PRODUCT_INCLUDE,
     });
     if (!article) {

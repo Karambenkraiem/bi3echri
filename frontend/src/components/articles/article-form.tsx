@@ -64,6 +64,10 @@ export function ArticleForm({
     floorPrice: article?.floorPrice != null ? String(article.floorPrice) : '',
     quantity: article ? String(article.quantity) : '1',
   });
+  const [readyForPublication, setReadyForPublication] = useState(
+    article?.readyForPublication ?? true,
+  );
+  const [notReadyReason, setNotReadyReason] = useState(article?.notReadyReason ?? '');
   const [pcSpecs, setPcSpecs] = useState(specsToForm(article?.specs));
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -194,6 +198,8 @@ export function ArticleForm({
               Object.entries(pcSpecs).filter(([, v]) => v !== '' && v !== undefined),
             )
           : undefined,
+        readyForPublication,
+        notReadyReason: readyForPublication ? undefined : notReadyReason,
       };
 
       if (isEdit) {
@@ -230,6 +236,10 @@ export function ArticleForm({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!readyForPublication && !notReadyReason.trim()) {
+      setError("Merci d'indiquer la raison pour laquelle l'article n'est pas encore prêt à être publié");
+      return;
+    }
     const message = isEdit
       ? 'Enregistrer les modifications de cet article ?'
       : 'Ajouter cet article au stock ?';
@@ -532,6 +542,34 @@ export function ArticleForm({
                 </button>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
+          <input
+            type="checkbox"
+            checked={readyForPublication}
+            onChange={(e) => setReadyForPublication(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-800"
+          />
+          Prêt à être publié sur le store en ligne
+        </label>
+        {!readyForPublication && (
+          <div className="mt-2">
+            <FieldLabel htmlFor="notReadyReason">Raison (pas encore prêt)</FieldLabel>
+            <Textarea
+              id="notReadyReason"
+              value={notReadyReason}
+              onChange={(e) => setNotReadyReason(e.target.value)}
+              placeholder="Ex: manque des photos, prix à confirmer, nettoyage à faire..."
+              required
+            />
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Cet article restera invisible sur le store public et apparaîtra dans « À préparer »
+              jusqu&apos;à sa publication.
+            </p>
           </div>
         )}
       </div>

@@ -343,11 +343,21 @@ function ArticlesPageContent() {
                     {new Date(article.purchaseDate).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[article.status]}`}
-                    >
-                      {STATUS_LABELS[article.status]}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[article.status]}`}
+                      >
+                        {STATUS_LABELS[article.status]}
+                      </span>
+                      {!article.readyForPublication && (
+                        <span
+                          className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                          title={article.notReadyReason ?? undefined}
+                        >
+                          Non publié
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-2">

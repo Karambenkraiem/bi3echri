@@ -55,6 +55,11 @@ export class ArticlesController {
     return this.articlesService.remove(id);
   }
 
+  @Post(':id/publish')
+  publish(@Param('id') id: string) {
+    return this.articlesService.publish(id);
+  }
+
   @Post(':id/restock')
   restock(
     @Param('id') id: string,

@@ -47,6 +47,11 @@ export class ArticlesService {
   }
 
   create(dto: CreateArticleDto, createdById: string) {
+    if (dto.readyForPublication === false && !dto.notReadyReason?.trim()) {
+      throw new BadRequestException(
+        "Merci d'indiquer la raison pour laquelle l'article n'est pas encore prêt à être publié",
+      );
+    }
     return this.prisma.$transaction(async (tx) => {
       const article = await tx.article.create({
         data: {
@@ -61,6 +66,8 @@ export class ArticlesService {
           floorPrice: dto.floorPrice,
           quantity: dto.quantity,
           specs: dto.specs as Prisma.InputJsonValue,
+          readyForPublication: dto.readyForPublication ?? true,
+          notReadyReason: dto.readyForPublication === false ? dto.notReadyReason : undefined,
           createdById,
         },
         include: { category: true },
@@ -73,6 +80,11 @@ export class ArticlesService {
 
   async update(id: string, dto: UpdateArticleDto) {
     await this.findOne(id);
+    if (dto.readyForPublication === false && !dto.notReadyReason?.trim()) {
+      throw new BadRequestException(
+        "Merci d'indiquer la raison pour laquelle l'article n'est pas encore prêt à être publié",
+      );
+    }
     const data: Prisma.ArticleUpdateInput = { ...dto };
     if (dto.purchaseDate) {
       data.purchaseDate = new Date(dto.purchaseDate);
@@ -81,7 +93,19 @@ export class ArticlesService {
       data.category = { connect: { id: dto.categoryId } };
       delete (data as Record<string, unknown>).categoryId;
     }
+    if (dto.readyForPublication === true) {
+      data.notReadyReason = null;
+    }
     return this.prisma.article.update({ where: { id }, data, include: { category: true } });
+  }
+
+  async publish(id: string) {
+    await this.findOne(id);
+    return this.prisma.article.update({
+      where: { id },
+      data: { readyForPublication: true, notReadyReason: null },
+      include: { category: true },
+    });
   }
 
   async restock(id: string, dto: RestockArticleDto, createdById: string) {

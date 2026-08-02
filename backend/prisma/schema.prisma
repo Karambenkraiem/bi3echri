@@ -151,6 +151,8 @@ model Article {
   floorPrice     Decimal?      @db.Decimal(10, 2)
   quantity       Int           @default(1)
   status         ArticleStatus @default(EN_STOCK)
+  readyForPublication Boolean  @default(true)
+  notReadyReason String?
   specs          Json?
   createdById    String
   createdBy      User          @relation("ArticleCreatedBy", fields: [createdById], references: [id])
@@ -163,6 +165,7 @@ model Article {
   @@map("articles")
   @@index([categoryId])
   @@index([status])
+  @@index([readyForPublication])
 }
 
 model Client {
