@@ -34,7 +34,7 @@ services:
       STOREFRONT_URL: ${STOREFRONT_URL:?STOREFRONT_URL is required}
       PORT: 3001
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     volumes:
       - uploads_data_prod:/app/uploads
     depends_on:
@@ -57,7 +57,7 @@ services:
     container_name: bi3echri-frontend-prod
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       backend:
         condition: service_healthy
@@ -73,7 +73,7 @@ services:
     container_name: bi3echri-storefront-prod
     restart: unless-stopped
     ports:
-      - "3002:3000"
+      - "127.0.0.1:3002:3000"
     depends_on:
       backend:
         condition: service_healthy
