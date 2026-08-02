@@ -81,7 +81,7 @@ export function SellForm({
         Vente de <span className="font-medium text-slate-900 dark:text-white">{article.name}</span>{' '}
         (acheté {formatDT(purchasePrice)})
       </p>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="salePrice">Prix de vente (DT)</FieldLabel>
           <Input
@@ -110,7 +110,7 @@ export function SellForm({
           Marge estimée : {formatDT(margin)}
         </p>
       )}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="buyerName">Acheteur</FieldLabel>
           <Input

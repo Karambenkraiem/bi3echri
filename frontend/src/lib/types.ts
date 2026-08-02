@@ -200,3 +200,33 @@ export interface Client {
   createdAt: string;
   _count?: { orders: number };
 }
+
+export type NotificationType =
+  | 'ACHAT_ARTICLE'
+  | 'VENTE_ARTICLE'
+  | 'CANAOUITE'
+  | 'MASSROUF'
+  | 'RENDEZ_VOUS';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message?: string | null;
+  link?: string | null;
+  createdAt: string;
+}
+
+export type AppointmentType = 'ACHAT' | 'VENTE';
+
+export interface Appointment {
+  id: string;
+  articleName: string;
+  specs?: string | null;
+  type: AppointmentType;
+  reminderAt?: string | null;
+  notified: boolean;
+  createdBy?: { id: string; name: string };
+  createdAt: string;
+  updatedAt: string;
+}

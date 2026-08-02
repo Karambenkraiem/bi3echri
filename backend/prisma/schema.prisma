@@ -56,6 +56,19 @@ enum MessageSender {
   STAFF
 }
 
+enum NotificationType {
+  ACHAT_ARTICLE
+  VENTE_ARTICLE
+  CANAOUITE
+  MASSROUF
+  RENDEZ_VOUS
+}
+
+enum AppointmentType {
+  ACHAT
+  VENTE
+}
+
 model Supplier {
   id        String       @id @default(uuid())
   type      SupplierType
@@ -92,8 +105,45 @@ model User {
   cashMovements CashMovement[]
   expenses      Expense[]
   messages      Message[]
+  appointments  Appointment[]      @relation("AppointmentCreatedBy")
+  notificationsReceived Notification[] @relation("NotificationTarget")
+  notificationsCreated  Notification[] @relation("NotificationCreatedBy")
 
   @@map("users")
+}
+
+model Notification {
+  id           String           @id @default(uuid())
+  type         NotificationType
+  title        String
+  message      String?
+  link         String?
+  targetUserId String?
+  targetUser   User?            @relation("NotificationTarget", fields: [targetUserId], references: [id])
+  createdById  String?
+  createdBy    User?            @relation("NotificationCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime         @default(now())
+
+  @@map("notifications")
+  @@index([targetUserId])
+  @@index([createdAt])
+}
+
+model Appointment {
+  id          String          @id @default(uuid())
+  articleName String
+  specs       String?
+  type        AppointmentType @default(ACHAT)
+  reminderAt  DateTime?
+  notified    Boolean         @default(false)
+  createdById String
+  createdBy   User            @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("appointments")
+  @@index([createdById])
+  @@index([reminderAt])
 }
 
 model CashMovement {

@@ -1,16 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ArticleStatus, OrderStatus } from '@prisma/client';
+import { ArticleStatus, NotificationType, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { CancelSaleDto } from './dto/cancel-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { TreasuryService } from '../treasury/treasury.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class SalesService {
   constructor(
     private prisma: PrismaService,
     private treasuryService: TreasuryService,
+    private notificationsService: NotificationsService,
   ) {}
 
   findAll() {
@@ -81,6 +83,15 @@ export class SalesService {
         });
       }
       await this.treasuryService.recordSale(tx, sale.id, dto.salePrice, soldById);
+      return sale;
+    }).then(async (sale) => {
+      await this.notificationsService.broadcast({
+        type: NotificationType.VENTE_ARTICLE,
+        title: `Vente : ${article.name}`,
+        message: `${dto.salePrice.toFixed(3)} DT`,
+        link: `/articles/${articleId}`,
+        createdById: soldById,
+      });
       return sale;
     });
   }

@@ -248,7 +248,7 @@ export function ArticleForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
         <FieldLabel htmlFor="name">Nom de l&apos;article</FieldLabel>
         <Input
@@ -268,7 +268,7 @@ export function ArticleForm({
           placeholder="Détails, état, accessoires inclus..."
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <div className="flex items-center justify-between">
             <FieldLabel htmlFor="categoryId">Catégorie</FieldLabel>
@@ -331,7 +331,7 @@ export function ArticleForm({
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="purchasePrice">Prix d&apos;achat (DT)</FieldLabel>
           <Input
@@ -355,7 +355,7 @@ export function ArticleForm({
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="expectedSalePrice">Prix affiché (DT, optionnel)</FieldLabel>
           <Input
@@ -395,7 +395,7 @@ export function ArticleForm({
             )}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="purchaseDate">Date d&apos;achat</FieldLabel>
           <Input
@@ -490,7 +490,7 @@ export function ArticleForm({
                       deletePhotoMutation.mutate(photo.id);
                     }
                   }}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-sm text-white"
                   aria-label="Supprimer cette photo"
                 >
                   ✕
@@ -500,32 +500,19 @@ export function ArticleForm({
           </div>
         )}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
-            id="photos"
-            type="file"
-            accept="image/*"
-            multiple
-            disabled={remainingSlots <= 0}
-            onChange={handleFilesSelected}
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700 disabled:opacity-50 dark:text-slate-300 dark:file:bg-white dark:file:text-slate-900 dark:hover:file:bg-slate-200"
-          />
-          <input
-            id="photos-camera"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={remainingSlots <= 0}
-            onChange={handleFilesSelected}
-            className="hidden"
-          />
-          <label
-            htmlFor="photos-camera"
-            className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 ${remainingSlots <= 0 ? 'pointer-events-none opacity-50' : ''}`}
-          >
-            📷 Prendre une photo
-          </label>
-        </div>
+        <input
+          id="photos"
+          type="file"
+          accept="image/*"
+          multiple
+          disabled={remainingSlots <= 0}
+          onChange={handleFilesSelected}
+          className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700 disabled:opacity-50 dark:text-slate-300 dark:file:bg-white dark:file:text-slate-900 dark:hover:file:bg-slate-200"
+        />
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Sur téléphone, choisissez « Appareil photo » dans la liste pour prendre une photo
+          directement — elle sera aussi enregistrée dans votre galerie.
+        </p>
         {previews.length > 0 && (
           <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5">
             {previews.map((src, index) => (
@@ -535,7 +522,7 @@ export function ArticleForm({
                 <button
                   type="button"
                   onClick={() => removePhotoAt(index)}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-sm text-white"
                   aria-label="Retirer cette photo"
                 >
                   ✕
@@ -579,7 +566,7 @@ export function ArticleForm({
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Caractéristiques PC
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel htmlFor="marque">Marque</FieldLabel>
               <Input

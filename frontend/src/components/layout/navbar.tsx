@@ -24,6 +24,7 @@ import {
   GearIcon,
   BellIcon,
   ClockIcon,
+  CalendarIcon,
 } from '@/components/ui/icons';
 
 const LINKS = [
@@ -31,6 +32,7 @@ const LINKS = [
   { href: '/articles', label: 'Stock', icon: BoxIcon },
   { href: '/preparation', label: 'À préparer', icon: ClockIcon },
   { href: '/commandes', label: 'Commandes', icon: BellIcon },
+  { href: '/rendez-vous', label: 'Rendez-vous', icon: CalendarIcon },
   { href: '/clients', label: 'Clients', icon: UserIcon },
   { href: '/sales', label: 'Ventes', icon: TagIcon },
   { href: '/categories', label: 'Catégories', icon: FolderIcon },
@@ -203,8 +205,10 @@ export function Navbar() {
             <UserMenu user={user} logout={logout} />
           </div>
           <button
-            className="rounded-lg border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 md:hidden"
+            className="min-h-11 min-w-11 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 md:hidden"
             onClick={() => setOpen((o) => !o)}
+            aria-label="Menu"
+            aria-expanded={open}
           >
             Menu
           </button>
@@ -259,7 +263,7 @@ export function Navbar() {
           </Link>
           <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
             <span className="text-sm text-slate-500 dark:text-slate-400">{user.name}</span>
-            <button onClick={logout} className="text-sm font-medium text-red-600">
+            <button onClick={logout} className="rounded-lg px-3 py-2 text-sm font-medium text-red-600">
               Déconnexion
             </button>
           </div>

@@ -4,18 +4,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CashMovementType, Prisma, Role } from '@prisma/client';
+import { CashMovementType, NotificationType, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdjustTreasuryDto } from './dto/adjust-treasury.dto';
 import { InvestTreasuryDto } from './dto/invest-treasury.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const EDITABLE_TYPES: CashMovementType[] = [CashMovementType.MANUAL, CashMovementType.INVESTMENT];
 
 @Injectable()
 export class TreasuryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async getBalance() {
     const result = await this.prisma.cashMovement.aggregate({ _sum: { amount: true } });
@@ -100,6 +104,13 @@ export class TreasuryService {
         createdById,
       },
     });
+    await this.notificationsService.broadcast({
+      type: NotificationType.CANAOUITE,
+      title: `Ajustement Canaouite : ${dto.amount.toFixed(3)} DT`,
+      message: dto.comment,
+      link: '/canaouite',
+      createdById,
+    });
     return this.getBalance();
   }
 
@@ -111,6 +122,13 @@ export class TreasuryService {
         comment: dto.comment,
         createdById,
       },
+    });
+    await this.notificationsService.broadcast({
+      type: NotificationType.CANAOUITE,
+      title: `Alimentation Canaouite : ${Math.abs(dto.amount).toFixed(3)} DT`,
+      message: dto.comment,
+      link: '/canaouite',
+      createdById,
     });
     return this.getBalance();
   }

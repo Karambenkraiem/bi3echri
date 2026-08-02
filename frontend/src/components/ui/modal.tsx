@@ -37,18 +37,18 @@ export function Modal({
   // ce piège en sortant complètement de l'arbre DOM de la page.
   return createPortal(
     <div
-      className="animate-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      className="animate-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-2 backdrop-blur-sm sm:p-4"
       onClick={onClose}
     >
       <div
-        className="animate-modal-in max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200/70 bg-white p-6 shadow-2xl dark:border-slate-800/70 dark:bg-slate-900"
+        className="animate-modal-in max-h-[95vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xl sm:p-6 dark:border-slate-800/70 dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Fermer"
           >
             ✕

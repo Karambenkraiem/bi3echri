@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { SalesController } from './sales.controller';
 import { TreasuryModule } from '../treasury/treasury.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TreasuryModule],
+  imports: [TreasuryModule, NotificationsModule],
   controllers: [SalesController],
   providers: [SalesService],
   exports: [SalesService],

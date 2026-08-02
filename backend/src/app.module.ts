@@ -18,6 +18,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ClientsModule } from './clients/clients.module';
 import { OrdersModule } from './orders/orders.module';
 import { StorefrontModule } from './storefront/storefront.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AppointmentsModule } from './appointments/appointments.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { StorefrontModule } from './storefront/storefront.module';
     ClientsModule,
     OrdersModule,
     StorefrontModule,
+    NotificationsModule,
+    AppointmentsModule,
   ],
   controllers: [AppController],
   providers: [

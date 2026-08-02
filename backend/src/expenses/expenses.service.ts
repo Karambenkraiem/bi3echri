@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TreasuryService } from '../treasury/treasury.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 
@@ -9,6 +11,7 @@ export class ExpensesService {
   constructor(
     private prisma: PrismaService,
     private treasuryService: TreasuryService,
+    private notificationsService: NotificationsService,
   ) {}
 
   findAll() {
@@ -35,6 +38,15 @@ export class ExpensesService {
         data: { amount: dto.amount, comment: dto.comment, createdById },
       });
       await this.treasuryService.recordExpense(tx, expense.id, dto.amount, createdById);
+      return expense;
+    }).then(async (expense) => {
+      await this.notificationsService.broadcast({
+        type: NotificationType.MASSROUF,
+        title: `Massrouf : ${dto.amount.toFixed(3)} DT`,
+        message: dto.comment,
+        link: '/massrouf',
+        createdById,
+      });
       return expense;
     });
   }

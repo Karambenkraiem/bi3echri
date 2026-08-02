@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ArticleStatus, Prisma } from '@prisma/client';
+import { ArticleStatus, NotificationType, Prisma } from '@prisma/client';
 import { existsSync, rmSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +9,7 @@ import { QueryArticleDto } from './dto/query-article.dto';
 import { RestockArticleDto } from './dto/restock-article.dto';
 import { ARTICLES_UPLOADS_DIR, MAX_PHOTOS_PER_ARTICLE } from '../common/uploads.constants';
 import { TreasuryService } from '../treasury/treasury.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const PHOTOS_ORDER_BY = { photos: { orderBy: { order: 'asc' as const } } };
 const CATEGORY_WITH_PARENT = { category: { include: { parent: true } } };
@@ -18,6 +19,7 @@ export class ArticlesService {
   constructor(
     private prisma: PrismaService,
     private treasuryService: TreasuryService,
+    private notificationsService: NotificationsService,
   ) {}
 
   findAll(query: QueryArticleDto) {
@@ -75,6 +77,15 @@ export class ArticlesService {
       const totalCost = dto.purchasePrice * (dto.quantity ?? 1);
       await this.treasuryService.recordPurchase(tx, article.id, totalCost, createdById);
       return article;
+    }).then(async (article) => {
+      await this.notificationsService.broadcast({
+        type: NotificationType.ACHAT_ARTICLE,
+        title: `Achat : ${article.name}`,
+        message: `${dto.quantity ?? 1} × ${(dto.purchasePrice).toFixed(3)} DT`,
+        link: `/articles/${article.id}`,
+        createdById,
+      });
+      return article;
     });
   }
 
@@ -122,6 +133,15 @@ export class ArticlesService {
       if (dto.cost) {
         await this.treasuryService.recordPurchase(tx, id, dto.cost, createdById);
       }
+      return updated;
+    }).then(async (updated) => {
+      await this.notificationsService.broadcast({
+        type: NotificationType.ACHAT_ARTICLE,
+        title: `Réapprovisionnement : ${updated.name}`,
+        message: `+${dto.quantity}${dto.cost ? ` (${dto.cost.toFixed(3)} DT)` : ''}`,
+        link: `/articles/${updated.id}`,
+        createdById,
+      });
       return updated;
     });
   }
