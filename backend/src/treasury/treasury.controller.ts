@@ -4,6 +4,7 @@ import { TreasuryService } from './treasury.service';
 import { AdjustTreasuryDto } from './dto/adjust-treasury.dto';
 import { InvestTreasuryDto } from './dto/invest-treasury.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -49,5 +50,12 @@ export class TreasuryController {
   @Delete('movements/:id')
   removeMovement(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.treasuryService.removeMovement(id, user);
+  }
+
+  @Patch('movements/:id/comment')
+  @UseGuards(RolesGuard)
+  @Roles(Role.VENDEUR, Role.ADMIN)
+  updateComment(@Param('id') id: string, @Body() dto: UpdateCommentDto) {
+    return this.treasuryService.updateComment(id, dto.comment);
   }
 }

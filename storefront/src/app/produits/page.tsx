@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Category, Condition, Product } from '@/lib/types';
+import { matchesSearch } from '@/lib/search';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SearchIcon, XIcon } from '@/components/ui/icons';
@@ -46,8 +47,9 @@ function CategoryCheckbox({
 function ProduitsContent() {
   const searchParams = useSearchParams();
   const initialCategoryId = searchParams.get('categoryId');
+  const initialSearch = searchParams.get('search') ?? '';
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
     () => new Set(initialCategoryId ? [initialCategoryId] : []),
   );
@@ -99,7 +101,7 @@ function ProduitsContent() {
     if (!products) return [];
     const query = search.trim().toLowerCase();
     return products.filter((product) => {
-      if (query && !product.name.toLowerCase().includes(query)) return false;
+      if (!matchesSearch(product, query)) return false;
       if (selectedCategories.size > 0 && !selectedCategories.has(product.category.id)) return false;
       if (selectedConditions.size > 0 && !selectedConditions.has(product.condition)) return false;
       return true;
@@ -120,7 +122,7 @@ function ProduitsContent() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher un produit..."
+                placeholder="Rechercher un produit, une marque, une caractéristique..."
                 className="pl-9"
               />
             </div>

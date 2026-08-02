@@ -155,4 +155,18 @@ export class TreasuryService {
     await this.prisma.cashMovement.delete({ where: { id } });
     return { success: true };
   }
+
+  async updateComment(id: string, comment: string) {
+    const movement = await this.prisma.cashMovement.findUnique({ where: { id } });
+    if (!movement) {
+      throw new NotFoundException('Mouvement introuvable');
+    }
+    // Le commentaire d'un mouvement peut toujours être corrigé, quel que soit son
+    // type (achat, vente, dépense...), contrairement au montant qui reste réservé
+    // aux ajustements/alimentations pour ne pas fausser la Canaouite.
+    return this.prisma.cashMovement.update({
+      where: { id },
+      data: { comment: comment || null },
+    });
+  }
 }

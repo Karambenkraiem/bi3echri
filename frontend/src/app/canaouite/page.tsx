@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProtectedRoute } from '@/components/layout/protected-route';
 import { useAuth } from '@/lib/auth-context';
 import { api, getAssetUrl } from '@/lib/api';
-import { CashMovement, CashMovementType, Sale } from '@/lib/types';
+import { Article, CashMovement, CashMovementType, Sale } from '@/lib/types';
 import { formatDT } from '@/lib/format';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ function AdjustForm() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!confirm(`Ajuster la Canaouite de ${amount} DT ?`)) return;
     mutation.mutate();
   }
 
@@ -113,6 +114,7 @@ function InvestForm() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!confirm(`Alimenter la Canaouite de ${amount} DT ?`)) return;
     mutation.mutate();
   }
 
@@ -157,6 +159,62 @@ function InvestForm() {
   );
 }
 
+function CommentEditor({ movement }: { movement: CashMovement }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [comment, setComment] = useState(movement.comment ?? '');
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => api.patch(`/treasury/movements/${movement.id}/comment`, { comment }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
+      setEditing(false);
+    },
+    onError: (err: unknown) => setError(err instanceof Error ? err.message : 'Erreur'),
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!confirm('Enregistrer ce commentaire ?')) return;
+    mutation.mutate();
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+      >
+        <PencilIcon className="h-3.5 w-3.5" />
+        Modifier le commentaire
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <FieldLabel htmlFor={`comment-${movement.id}`}>Commentaire</FieldLabel>
+      <Input
+        id={`comment-${movement.id}`}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Ajouter un commentaire..."
+      />
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setEditing(false)}>
+          Annuler
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function SaleMovementDetail({ movement }: { movement: CashMovement }) {
   const { data: sale, isLoading, isError } = useQuery({
     queryKey: ['sales', movement.saleId],
@@ -182,6 +240,7 @@ function SaleMovementDetail({ movement }: { movement: CashMovement }) {
           <dt className="text-slate-500">Par</dt>
           <dd>{movement.createdBy?.name ?? '—'}</dd>
         </dl>
+        <CommentEditor movement={movement} />
       </div>
     );
   }
@@ -234,7 +293,11 @@ function SaleMovementDetail({ movement }: { movement: CashMovement }) {
         )}
         <dt className="text-slate-500">Vendu par</dt>
         <dd>{sale.soldBy?.name ?? '—'}</dd>
+        <dt className="text-slate-500">Commentaire (mouvement)</dt>
+        <dd>{movement.comment ?? '—'}</dd>
       </dl>
+
+      <CommentEditor movement={movement} />
 
       {sale.article && (
         <Link
@@ -244,6 +307,87 @@ function SaleMovementDetail({ movement }: { movement: CashMovement }) {
           Voir la fiche article →
         </Link>
       )}
+    </div>
+  );
+}
+
+function PurchaseMovementDetail({ movement }: { movement: CashMovement }) {
+  const { data: article, isLoading, isError } = useQuery({
+    queryKey: ['articles', movement.articleId],
+    queryFn: () => api.get<Article>(`/articles/${movement.articleId}`),
+    enabled: !!movement.articleId,
+    retry: false,
+  });
+
+  if (!movement.articleId || isError) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          L&apos;article lié à cet achat n&apos;est plus disponible (supprimé depuis).
+        </p>
+        <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
+          <dt className="text-slate-500">Montant</dt>
+          <dd className="text-red-600">{formatDT(Number(movement.amount))}</dd>
+          <dt className="text-slate-500">Date</dt>
+          <dd>{new Date(movement.createdAt).toLocaleString('fr-FR')}</dd>
+          <dt className="text-slate-500">Commentaire</dt>
+          <dd>{movement.comment ?? '—'}</dd>
+          <dt className="text-slate-500">Par</dt>
+          <dd>{movement.createdBy?.name ?? '—'}</dd>
+        </dl>
+        <CommentEditor movement={movement} />
+      </div>
+    );
+  }
+
+  if (isLoading || !article) {
+    return <p className="text-sm text-slate-500">Chargement...</p>;
+  }
+
+  const photo = article.photos?.[0];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={getAssetUrl(photo.url)} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <BoxIcon className="h-6 w-6 text-slate-300" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-medium text-slate-900 dark:text-white">{article.name}</p>
+          <p className="text-sm text-slate-500">{article.category?.name}</p>
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
+        <dt className="text-slate-500">Montant de l&apos;achat</dt>
+        <dd className="font-medium text-red-600">{formatDT(Math.abs(Number(movement.amount)))}</dd>
+        <dt className="text-slate-500">Prix d&apos;achat article</dt>
+        <dd>{formatDT(Number(article.purchasePrice))}</dd>
+        <dt className="text-slate-500">Date d&apos;achat</dt>
+        <dd>{new Date(article.purchaseDate).toLocaleDateString('fr-FR')}</dd>
+        <dt className="text-slate-500">Fournisseur / où acheté</dt>
+        <dd>{article.purchaseSource || '—'}</dd>
+        <dt className="text-slate-500">Quantité</dt>
+        <dd>{article.quantity}</dd>
+        <dt className="text-slate-500">Commentaire (mouvement)</dt>
+        <dd>{movement.comment ?? '—'}</dd>
+        <dt className="text-slate-500">Par</dt>
+        <dd>{movement.createdBy?.name ?? '—'}</dd>
+      </dl>
+
+      <CommentEditor movement={movement} />
+
+      <Link
+        href={`/articles/${article.id}`}
+        className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+      >
+        Voir la fiche article →
+      </Link>
     </div>
   );
 }
@@ -292,6 +436,7 @@ function MovementDetailModal({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!confirm('Enregistrer les modifications de ce mouvement ?')) return;
     updateMutation.mutate();
   }
 
@@ -369,9 +514,7 @@ function MovementDetailModal({
           </Button>
         </div>
       ) : (
-        <p className="text-xs text-slate-500">
-          Ce type de mouvement ne peut pas être modifié depuis cet écran.
-        </p>
+        <CommentEditor movement={movement} />
       )}
     </div>
   );
@@ -520,11 +663,19 @@ function CanaouiteContent() {
       <Modal
         open={!!detailTarget}
         onClose={() => setDetailTarget(null)}
-        title={detailTarget?.type === 'SALE' ? 'Article vendu' : 'Détail du mouvement'}
+        title={
+          detailTarget?.type === 'SALE'
+            ? 'Article vendu'
+            : detailTarget?.type === 'PURCHASE'
+              ? 'Article acheté'
+              : 'Détail du mouvement'
+        }
       >
         {detailTarget &&
           (detailTarget.type === 'SALE' ? (
             <SaleMovementDetail movement={detailTarget} />
+          ) : detailTarget.type === 'PURCHASE' ? (
+            <PurchaseMovementDetail movement={detailTarget} />
           ) : (
             <MovementDetailModal
               movement={detailTarget}
