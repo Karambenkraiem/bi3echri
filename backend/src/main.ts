@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { UPLOADS_ROOT } from './common/uploads.constants';
+import { MulterExceptionFilter } from './common/multer-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -38,6 +39,8 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  app.useGlobalFilters(new MulterExceptionFilter());
 
   app.useStaticAssets(UPLOADS_ROOT, { prefix: '/uploads' });
 
