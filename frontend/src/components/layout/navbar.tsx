@@ -25,10 +25,12 @@ import {
   BellIcon,
   ClockIcon,
   CalendarIcon,
+  EyeIcon,
 } from '@/components/ui/icons';
 
 const LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: ChartIcon },
+  { href: '/audience', label: 'Audience', icon: EyeIcon },
   { href: '/articles', label: 'Stock', icon: BoxIcon },
   { href: '/preparation', label: 'À préparer', icon: ClockIcon },
   { href: '/commandes', label: 'Commandes', icon: BellIcon },

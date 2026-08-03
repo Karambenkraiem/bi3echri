@@ -69,6 +69,12 @@ enum AppointmentType {
   VENTE
 }
 
+enum MessageAttachmentType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
 model Supplier {
   id        String       @id @default(uuid())
   type      SupplierType
@@ -256,14 +262,17 @@ model Order {
 }
 
 model Message {
-  id          String        @id @default(uuid())
-  orderId     String
-  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sender      MessageSender
-  body        String
-  createdById String?
-  createdBy   User?         @relation(fields: [createdById], references: [id])
-  createdAt   DateTime      @default(now())
+  id              String                  @id @default(uuid())
+  orderId         String
+  order           Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender          MessageSender
+  body            String?
+  attachmentUrl   String?
+  attachmentType  MessageAttachmentType?
+  attachmentName  String?
+  createdById     String?
+  createdBy       User?                   @relation(fields: [createdById], references: [id])
+  createdAt       DateTime                @default(now())
 
   @@map("messages")
   @@index([orderId])
@@ -298,4 +307,15 @@ model Sale {
   @@map("sales")
   @@index([saleDate])
   @@index([adChannel])
+}
+
+model Visit {
+  id        String   @id @default(uuid())
+  sessionId String
+  path      String?
+  createdAt DateTime @default(now())
+
+  @@map("visits")
+  @@index([createdAt])
+  @@index([sessionId])
 }

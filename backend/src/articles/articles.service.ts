@@ -10,6 +10,7 @@ import { RestockArticleDto } from './dto/restock-article.dto';
 import { ARTICLES_UPLOADS_DIR, MAX_PHOTOS_PER_ARTICLE } from '../common/uploads.constants';
 import { TreasuryService } from '../treasury/treasury.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { compressImageFile } from '../common/media-compress.util';
 
 const PHOTOS_ORDER_BY = { photos: { orderBy: { order: 'asc' as const } } };
 const CATEGORY_WITH_PARENT = { category: { include: { parent: true } } };
@@ -170,11 +171,15 @@ export class ArticlesService {
       );
     }
 
+    const compressedNames = await Promise.all(
+      files.map((file) => compressImageFile(file.path)),
+    );
+
     const startOrder = article.photos.reduce((max, p) => Math.max(max, p.order), -1) + 1;
     await this.prisma.photo.createMany({
-      data: files.map((file, index) => ({
+      data: compressedNames.map((filename, index) => ({
         articleId,
-        url: `/uploads/articles/${articleId}/${file.filename}`,
+        url: `/uploads/articles/${articleId}/${filename}`,
         order: startOrder + index,
       })),
     });

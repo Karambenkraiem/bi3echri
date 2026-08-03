@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MessageSender } from '@prisma/client';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -12,6 +24,7 @@ import { CurrentClient } from '../clients/decorators/current-client.decorator';
 import type { AuthenticatedClient } from '../clients/strategies/client-jwt.strategy';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
+import { messageAttachmentUploadOptions } from './multer-message.config';
 
 @Controller()
 export class OrdersController {
@@ -39,8 +52,13 @@ export class OrdersController {
   @Public()
   @UseGuards(OptionalClientAuthGuard)
   @Post('public/orders/:id/messages')
-  addPublicMessage(@Param('id') id: string, @Body() dto: CreateMessageDto) {
-    return this.ordersService.addMessage(id, MessageSender.CLIENT, dto.body);
+  @UseInterceptors(FileInterceptor('file', messageAttachmentUploadOptions))
+  addPublicMessage(
+    @Param('id') id: string,
+    @Body() dto: CreateMessageDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.ordersService.addMessage(id, MessageSender.CLIENT, dto.body, null, file);
   }
 
   @Public()
@@ -70,12 +88,14 @@ export class OrdersController {
   }
 
   @Post('orders/:id/messages')
+  @UseInterceptors(FileInterceptor('file', messageAttachmentUploadOptions))
   addMessage(
     @Param('id') id: string,
     @Body() dto: CreateMessageDto,
     @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.ordersService.addMessage(id, MessageSender.STAFF, dto.body, user.userId);
+    return this.ordersService.addMessage(id, MessageSender.STAFF, dto.body, user.userId, file);
   }
 
   @Patch('orders/:id')

@@ -64,12 +64,16 @@ export interface Client {
 }
 
 export type MessageSender = 'CLIENT' | 'STAFF';
+export type MessageAttachmentType = 'IMAGE' | 'VIDEO' | 'DOCUMENT';
 
 export interface Message {
   id: string;
   orderId: string;
   sender: MessageSender;
-  body: string;
+  body?: string | null;
+  attachmentUrl?: string | null;
+  attachmentType?: MessageAttachmentType | null;
+  attachmentName?: string | null;
   createdById?: string | null;
   createdBy?: { name: string } | null;
   createdAt: string;

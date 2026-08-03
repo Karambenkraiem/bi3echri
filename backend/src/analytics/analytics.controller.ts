@@ -29,4 +29,19 @@ export class AnalyticsController {
   channelPerformance() {
     return this.analyticsService.channelPerformance();
   }
+
+  @Get('visits-daily')
+  visitsDaily() {
+    return this.analyticsService.visitsDaily();
+  }
+
+  @Get('visits-weekly')
+  visitsWeekly() {
+    return this.analyticsService.visitsWeekly();
+  }
+
+  @Get('visits-monthly')
+  visitsMonthly() {
+    return this.analyticsService.visitsMonthly();
+  }
 }

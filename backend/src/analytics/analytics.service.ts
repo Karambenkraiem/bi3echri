@@ -32,6 +32,11 @@ export interface ChannelPerformanceRow {
   totalMargin: number;
 }
 
+export interface VisitsRow {
+  period: string;
+  visits: number;
+}
+
 @Injectable()
 export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
@@ -120,5 +125,41 @@ export class AnalyticsService {
       stockValue: Number(stock._sum.purchasePrice ?? 0),
       ...sales[0],
     };
+  }
+
+  async visitsDaily() {
+    return this.prisma.$queryRaw<VisitsRow[]>`
+      SELECT
+        to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') as period,
+        COUNT(DISTINCT "sessionId")::int as visits
+      FROM visits
+      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
+      GROUP BY period
+      ORDER BY period ASC
+    `;
+  }
+
+  async visitsWeekly() {
+    return this.prisma.$queryRaw<VisitsRow[]>`
+      SELECT
+        to_char(date_trunc('week', "createdAt"), 'YYYY-MM-DD') as period,
+        COUNT(DISTINCT "sessionId")::int as visits
+      FROM visits
+      WHERE "createdAt" >= NOW() - INTERVAL '12 weeks'
+      GROUP BY period
+      ORDER BY period ASC
+    `;
+  }
+
+  async visitsMonthly() {
+    return this.prisma.$queryRaw<VisitsRow[]>`
+      SELECT
+        to_char(date_trunc('month', "createdAt"), 'YYYY-MM') as period,
+        COUNT(DISTINCT "sessionId")::int as visits
+      FROM visits
+      WHERE "createdAt" >= NOW() - INTERVAL '12 months'
+      GROUP BY period
+      ORDER BY period ASC
+    `;
   }
 }

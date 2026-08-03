@@ -4,7 +4,7 @@ FROM node:20-bookworm-slim AS base
 WORKDIR /app
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl python3 make g++ \
+  && apt-get install -y --no-install-recommends openssl python3 make g++ ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 # ---- dependencies (cached layer) ----
@@ -35,7 +35,7 @@ FROM node:20-bookworm-slim AS production
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl \
+  && apt-get install -y --no-install-recommends openssl ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules

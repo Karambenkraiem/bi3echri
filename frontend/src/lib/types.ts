@@ -133,6 +133,11 @@ export interface ChannelPerformance {
   totalMargin: number;
 }
 
+export interface VisitsPoint {
+  period: string;
+  visits: number;
+}
+
 export const AD_CHANNELS = [
   'Leboncoin',
   'Vinted',
@@ -180,12 +185,16 @@ export interface Order {
 }
 
 export type MessageSender = 'CLIENT' | 'STAFF';
+export type MessageAttachmentType = 'IMAGE' | 'VIDEO' | 'DOCUMENT';
 
 export interface Message {
   id: string;
   orderId: string;
   sender: MessageSender;
-  body: string;
+  body?: string | null;
+  attachmentUrl?: string | null;
+  attachmentType?: MessageAttachmentType | null;
+  attachmentName?: string | null;
   createdById?: string | null;
   createdBy?: { name: string } | null;
   createdAt: string;

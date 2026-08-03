@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/lib/theme-context';
 import { ClientAuthProvider } from '@/lib/client-auth-context';
 import { StorefrontNavbar } from '@/components/storefront/navbar';
 import { StorefrontFooter } from '@/components/storefront/footer';
+import { VisitTracker } from '@/components/storefront/visit-tracker';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
@@ -55,6 +56,7 @@ export default function RootLayout({
         <QueryProvider>
           <ThemeProvider>
             <ClientAuthProvider>
+              <VisitTracker />
               <StorefrontNavbar />
               <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 animate-fade-in-up">
                 {children}

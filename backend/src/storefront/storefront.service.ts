@@ -3,6 +3,7 @@ import { ArticleStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CategoriesService } from '../categories/categories.service';
 import { QueryPublicProductsDto } from './dto/query-public-products.dto';
+import { TrackVisitDto } from './dto/track-visit.dto';
 
 const NEW_PRODUCT_WINDOW_DAYS = 14;
 
@@ -89,5 +90,11 @@ export class StorefrontService {
       throw new NotFoundException('Produit introuvable');
     }
     return toPublicProduct(article);
+  }
+
+  trackVisit(dto: TrackVisitDto) {
+    return this.prisma.visit.create({
+      data: { sessionId: dto.sessionId, path: dto.path },
+    });
   }
 }

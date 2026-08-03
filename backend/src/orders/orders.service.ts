@@ -1,11 +1,20 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ArticleStatus, MessageSender, OrderStatus, OrderType, Prisma } from '@prisma/client';
+import {
+  ArticleStatus,
+  MessageAttachmentType,
+  MessageSender,
+  OrderStatus,
+  OrderType,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { QueryOrderDto } from './dto/query-order.dto';
 import { ClientDecisionDto } from './dto/client-decision.dto';
+import { ALLOWED_IMAGE_MIME_TYPES, ALLOWED_VIDEO_MIME_TYPES } from '../common/uploads.constants';
+import { compressImageFile, compressVideoFile } from '../common/media-compress.util';
 
 const RETRAIT_HOURS = 24;
 
@@ -267,12 +276,44 @@ export class OrdersService {
   async addMessage(
     orderId: string,
     sender: MessageSender,
-    body: string,
+    body: string | undefined,
     createdById?: string | null,
+    file?: Express.Multer.File,
   ) {
     await this.assertOrderExists(orderId);
+    if (!body?.trim() && !file) {
+      throw new BadRequestException('Le message ne peut pas être vide');
+    }
+
+    let attachmentUrl: string | undefined;
+    let attachmentType: MessageAttachmentType | undefined;
+    let attachmentName: string | undefined;
+
+    if (file) {
+      let filename = file.filename;
+      if (ALLOWED_IMAGE_MIME_TYPES.includes(file.mimetype)) {
+        filename = await compressImageFile(file.path);
+        attachmentType = MessageAttachmentType.IMAGE;
+      } else if (ALLOWED_VIDEO_MIME_TYPES.includes(file.mimetype)) {
+        filename = await compressVideoFile(file.path);
+        attachmentType = MessageAttachmentType.VIDEO;
+      } else {
+        attachmentType = MessageAttachmentType.DOCUMENT;
+      }
+      attachmentUrl = `/uploads/messages/${orderId}/${filename}`;
+      attachmentName = file.originalname;
+    }
+
     return this.prisma.message.create({
-      data: { orderId, sender, body, createdById: createdById ?? undefined },
+      data: {
+        orderId,
+        sender,
+        body: body?.trim() || undefined,
+        attachmentUrl,
+        attachmentType,
+        attachmentName,
+        createdById: createdById ?? undefined,
+      },
       include: { createdBy: { select: { name: true } } },
     });
   }
