@@ -1,14 +1,16 @@
 'use client';
 
-import { use, useMemo } from 'react';
+import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { ProtectedRoute } from '@/components/layout/protected-route';
 import { api, getAssetUrl } from '@/lib/api';
 import { Client, Order, OrderStatus, OrderType } from '@/lib/types';
 import { formatDT } from '@/lib/format';
 import { Card } from '@/components/ui/card';
-import { PhoneIcon, MailIcon, BellIcon, BoxIcon } from '@/components/ui/icons';
+import { PhoneIcon, MailIcon, BellIcon, BoxIcon, EyeIcon } from '@/components/ui/icons';
+
+const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'http://localhost:3002';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   EN_ATTENTE: 'En attente',
@@ -39,6 +41,17 @@ function ClientDetailContent({ id }: { id: string }) {
   const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', { clientId: id }],
     queryFn: () => api.get<Order[]>(`/orders?clientId=${id}`),
+  });
+
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
+  const impersonateMutation = useMutation({
+    mutationFn: () => api.post<{ accessToken: string }>(`/clients/${id}/impersonate`),
+    onSuccess: ({ accessToken }) => {
+      window.open(`${STOREFRONT_URL}/auto-login?token=${encodeURIComponent(accessToken)}`, '_blank');
+    },
+    onError: (err: unknown) => {
+      setImpersonateError(err instanceof Error ? err.message : 'Erreur');
+    },
   });
 
   const interestedArticles = useMemo(() => {
@@ -139,8 +152,18 @@ function ClientDetailContent({ id }: { id: string }) {
             <BellIcon className="h-4 w-4" />
             Voir les commandes
           </a>
+          <button
+            type="button"
+            onClick={() => impersonateMutation.mutate()}
+            disabled={impersonateMutation.isPending}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-violet-800 dark:hover:bg-violet-900/20 dark:hover:text-violet-300"
+          >
+            <EyeIcon className="h-4 w-4" />
+            {impersonateMutation.isPending ? 'Connexion...' : 'Voir le site comme ce client'}
+          </button>
         </div>
       </Card>
+      {impersonateError && <p className="text-sm text-red-600">{impersonateError}</p>}
 
       <h2 id="commandes" className="text-sm font-semibold text-slate-900 dark:text-white">
         Réservations et achats

@@ -253,10 +253,15 @@ function SaleMovementDetail({ movement }: { movement: CashMovement }) {
   if (!movement.saleId || isError) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-          Cette vente a depuis été annulée (retour en stock) — le détail de l&apos;article
-          n&apos;est plus disponible.
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+            Supprimé
+          </span>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Cette vente a depuis été annulée (retour en stock) — le détail de l&apos;article
+            n&apos;est plus disponible, mais les informations du mouvement restent ci-dessous.
+          </p>
+        </div>
         <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
           <dt className="text-slate-500">Montant</dt>
           <dd className="text-emerald-600">{formatDT(Number(movement.amount))}</dd>
@@ -349,9 +354,15 @@ function PurchaseMovementDetail({ movement }: { movement: CashMovement }) {
   if (!movement.articleId || isError) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-          L&apos;article lié à cet achat n&apos;est plus disponible (supprimé depuis).
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+            Supprimé
+          </span>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            L&apos;article lié à cet achat a été supprimé depuis, mais les informations du
+            mouvement restent ci-dessous.
+          </p>
+        </div>
         <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-3 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
           <dt className="text-slate-500">Montant</dt>
           <dd className="text-red-600">{formatDT(Number(movement.amount))}</dd>

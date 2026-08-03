@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 
 @Controller('clients')
@@ -13,5 +13,10 @@ export class ClientsAdminController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.clientsService.findOneForStaff(id);
+  }
+
+  @Post(':id/impersonate')
+  impersonate(@Param('id') id: string) {
+    return this.clientsService.impersonate(id);
   }
 }

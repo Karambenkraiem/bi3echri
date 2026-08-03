@@ -125,6 +125,18 @@ export class ClientsService {
     return client;
   }
 
+  async impersonate(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, email: true },
+    });
+    if (!client) {
+      throw new NotFoundException('Client introuvable');
+    }
+    const accessToken = await this.issueToken(client);
+    return { accessToken };
+  }
+
   async myOrders(clientId: string) {
     const orders = await this.prisma.order.findMany({
       where: { clientId },
