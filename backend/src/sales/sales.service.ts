@@ -68,6 +68,7 @@ export class SalesService {
           buyerName: dto.buyerName,
           buyerContact: dto.buyerContact,
           adChannel: dto.adChannel,
+          paymentMethod: dto.paymentMethod,
           notes: dto.notes,
           soldById,
         },
@@ -118,16 +119,23 @@ export class SalesService {
           buyerName: dto.buyerName,
           buyerContact: dto.buyerContact,
           adChannel: dto.adChannel,
+          paymentMethod: dto.paymentMethod,
           notes: dto.notes,
         },
         include: { article: { include: { category: true } }, soldBy: { select: { id: true, name: true } } },
       });
-      // Si le prix a changé, le mouvement de trésorerie associé doit rester cohérent
-      // avec la vente (sinon la Canaouite diverge silencieusement du prix affiché).
-      if (dto.salePrice != null && Number(dto.salePrice) !== Number(sale.salePrice)) {
+      // Si le prix ou la modalité ont changé, le mouvement de trésorerie associé
+      // doit rester cohérent avec la vente (sinon la Canaouite diverge
+      // silencieusement du prix/de la modalité affichés).
+      const priceChanged = dto.salePrice != null && Number(dto.salePrice) !== Number(sale.salePrice);
+      const methodChanged = dto.paymentMethod != null && dto.paymentMethod !== sale.paymentMethod;
+      if (priceChanged || methodChanged) {
         await tx.cashMovement.updateMany({
           where: { saleId, type: 'SALE' },
-          data: { amount: Math.abs(dto.salePrice) },
+          data: {
+            amount: priceChanged ? Math.abs(dto.salePrice!) : undefined,
+            paymentMethod: methodChanged ? dto.paymentMethod : undefined,
+          },
         });
       }
       return updated;

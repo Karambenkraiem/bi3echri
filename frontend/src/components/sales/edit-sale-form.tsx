@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Sale, AD_CHANNELS } from '@/lib/types';
+import { Sale, AD_CHANNELS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PaymentMethod } from '@/lib/types';
 import { Input, FieldLabel, Select, Textarea } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -17,6 +17,7 @@ export function EditSaleForm({ sale, onDone }: { sale: Sale; onDone: () => void 
     adChannel: sale.adChannel,
     notes: sale.notes ?? '',
   });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(sale.paymentMethod);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -28,6 +29,7 @@ export function EditSaleForm({ sale, onDone }: { sale: Sale; onDone: () => void 
         buyerContact: form.buyerContact || undefined,
         adChannel: form.adChannel,
         notes: form.notes || undefined,
+        paymentMethod,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
@@ -48,7 +50,7 @@ export function EditSaleForm({ sale, onDone }: { sale: Sale; onDone: () => void 
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="edit-salePrice">Prix de vente (DT)</FieldLabel>
           <Input
@@ -72,7 +74,7 @@ export function EditSaleForm({ sale, onDone }: { sale: Sale; onDone: () => void 
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="edit-buyerName">Acheteur</FieldLabel>
           <Input
@@ -92,19 +94,35 @@ export function EditSaleForm({ sale, onDone }: { sale: Sale; onDone: () => void 
           />
         </div>
       </div>
-      <div>
-        <FieldLabel htmlFor="edit-adChannel">Où l&apos;annonce a été trouvée / vendue</FieldLabel>
-        <Select
-          id="edit-adChannel"
-          value={form.adChannel}
-          onChange={(e) => setForm({ ...form, adChannel: e.target.value })}
-        >
-          {AD_CHANNELS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <FieldLabel htmlFor="edit-adChannel">Où l&apos;annonce a été trouvée / vendue</FieldLabel>
+          <Select
+            id="edit-adChannel"
+            value={form.adChannel}
+            onChange={(e) => setForm({ ...form, adChannel: e.target.value })}
+          >
+            {AD_CHANNELS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <FieldLabel htmlFor="edit-paymentMethod">Modalité de paiement</FieldLabel>
+          <Select
+            id="edit-paymentMethod"
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+          >
+            {PAYMENT_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {PAYMENT_METHOD_LABELS[m]}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
       <div>
         <FieldLabel htmlFor="edit-notes">Notes (optionnel)</FieldLabel>

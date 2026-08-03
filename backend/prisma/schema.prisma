@@ -299,18 +299,19 @@ model Photo {
 }
 
 model Sale {
-  id           String   @id @default(uuid())
-  articleId    String   @unique
-  article      Article  @relation(fields: [articleId], references: [id])
-  salePrice    Decimal  @db.Decimal(10, 2)
-  saleDate     DateTime @default(now())
-  buyerName    String?
-  buyerContact String?
-  adChannel    String
-  notes        String?
-  soldById     String
-  soldBy       User     @relation("SaleSoldBy", fields: [soldById], references: [id])
-  createdAt    DateTime @default(now())
+  id            String        @id @default(uuid())
+  articleId     String        @unique
+  article       Article       @relation(fields: [articleId], references: [id])
+  salePrice     Decimal       @db.Decimal(10, 2)
+  saleDate      DateTime      @default(now())
+  buyerName     String?
+  buyerContact  String?
+  adChannel     String
+  paymentMethod PaymentMethod @default(CASH)
+  notes         String?
+  soldById      String
+  soldBy        User          @relation("SaleSoldBy", fields: [soldById], references: [id])
+  createdAt     DateTime      @default(now())
 
   @@map("sales")
   @@index([saleDate])

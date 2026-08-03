@@ -1,4 +1,5 @@
-import { IsDateString, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { PaymentMethod } from '@prisma/client';
 
 export class UpdateSaleDto {
   @IsNumber()
@@ -25,4 +26,8 @@ export class UpdateSaleDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsEnum(PaymentMethod)
+  @IsOptional()
+  paymentMethod?: PaymentMethod;
 }

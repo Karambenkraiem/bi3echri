@@ -103,6 +103,7 @@ export interface Sale {
   buyerName?: string | null;
   buyerContact?: string | null;
   adChannel: string;
+  paymentMethod: PaymentMethod;
   notes?: string | null;
   soldBy?: { id: string; name: string };
   createdAt: string;
