@@ -33,6 +33,12 @@ enum CashMovementType {
   RETOUR
 }
 
+enum PaymentMethod {
+  CASH
+  VIREMENT
+  CHEQUE
+}
+
 enum SupplierType {
   SOUK
   PARTICULIER
@@ -153,19 +159,21 @@ model Appointment {
 }
 
 model CashMovement {
-  id          String           @id @default(uuid())
-  type        CashMovementType
-  amount      Decimal          @db.Decimal(10, 2)
-  comment     String?
-  articleId   String?
-  saleId      String?
-  expenseId   String?
-  createdById String
-  createdBy   User             @relation(fields: [createdById], references: [id])
-  createdAt   DateTime         @default(now())
+  id            String           @id @default(uuid())
+  type          CashMovementType
+  amount        Decimal          @db.Decimal(10, 2)
+  paymentMethod PaymentMethod    @default(CASH)
+  comment       String?
+  articleId     String?
+  saleId        String?
+  expenseId     String?
+  createdById   String
+  createdBy     User             @relation(fields: [createdById], references: [id])
+  createdAt     DateTime         @default(now())
 
   @@map("cash_movements")
   @@index([createdAt])
+  @@index([paymentMethod])
 }
 
 model Expense {

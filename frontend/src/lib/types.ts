@@ -13,12 +13,27 @@ export interface User {
   createdAt?: string;
 }
 
-export type CashMovementType = 'RESET' | 'PURCHASE' | 'SALE' | 'EXPENSE' | 'MANUAL' | 'INVESTMENT';
+export type CashMovementType =
+  | 'RESET'
+  | 'PURCHASE'
+  | 'SALE'
+  | 'EXPENSE'
+  | 'MANUAL'
+  | 'INVESTMENT'
+  | 'RETOUR';
+export type PaymentMethod = 'CASH' | 'VIREMENT' | 'CHEQUE';
+export const PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'VIREMENT', 'CHEQUE'];
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Cash Espèce',
+  VIREMENT: 'Virement',
+  CHEQUE: 'Chèque',
+};
 
 export interface CashMovement {
   id: string;
   type: CashMovementType;
   amount: string | number;
+  paymentMethod: PaymentMethod;
   comment?: string | null;
   articleId?: string | null;
   saleId?: string | null;

@@ -9,6 +9,7 @@ import { useTheme } from '@/lib/theme-context';
 import { api, getAssetUrl } from '@/lib/api';
 import { formatDT } from '@/lib/format';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { CalculatorPopover } from '@/components/layout/calculator-popover';
 import { Article } from '@/lib/types';
 import {
   SunIcon,
@@ -95,9 +96,9 @@ function CanaouiteBadge() {
           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
           : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
       }`}
-      title="Voir l'historique de la Canaouite"
+      title="Solde Cash Espèce de la Canaouite"
     >
-      {formatDT(data.balance)}
+      Cash : {formatDT(data.balance)}
     </Link>
   );
 }
@@ -202,6 +203,7 @@ export function Navbar() {
           </Link>
           <div className="hidden shrink-0 items-center gap-2 md:flex">
             <ThemeToggle />
+            <CalculatorPopover />
             <CanaouiteBadge />
             <NotificationBell />
             <UserMenu user={user} logout={logout} />
@@ -237,6 +239,7 @@ export function Navbar() {
         <nav className="animate-fade-in-up flex flex-col gap-1 border-t border-slate-200 px-4 py-3 md:hidden dark:border-slate-800">
           <div className="mb-2 flex items-center gap-3">
             <ThemeToggle />
+            <CalculatorPopover />
             <CanaouiteBadge />
             <NotificationBell />
           </div>

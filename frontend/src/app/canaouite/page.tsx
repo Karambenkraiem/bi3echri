@@ -6,11 +6,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProtectedRoute } from '@/components/layout/protected-route';
 import { useAuth } from '@/lib/auth-context';
 import { api, getAssetUrl } from '@/lib/api';
-import { Article, CashMovement, CashMovementType, Sale } from '@/lib/types';
+import {
+  Article,
+  CashMovement,
+  CashMovementType,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
+  PaymentMethod,
+  Sale,
+} from '@/lib/types';
 import { formatDT } from '@/lib/format';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input, FieldLabel } from '@/components/ui/input';
+import { Input, FieldLabel, Select } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { PencilIcon, TrashIcon, BoxIcon } from '@/components/ui/icons';
 import { SortableHeader } from '@/components/ui/sortable-header';
@@ -23,6 +31,7 @@ const TYPE_LABELS: Record<CashMovementType, string> = {
   EXPENSE: 'Massrouf',
   MANUAL: 'Ajustement',
   INVESTMENT: 'Investissement',
+  RETOUR: 'Retour',
 };
 
 const TYPE_COLORS: Record<CashMovementType, string> = {
@@ -32,16 +41,19 @@ const TYPE_COLORS: Record<CashMovementType, string> = {
   EXPENSE: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
   MANUAL: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   INVESTMENT: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+  RETOUR: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
 };
 
 function AdjustForm() {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const [comment, setComment] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () => api.post('/treasury/adjust', { amount: Number(amount), comment }),
+    mutationFn: () =>
+      api.post('/treasury/adjust', { amount: Number(amount), comment, paymentMethod }),
     onSuccess: () => {
       setAmount('');
       setComment('');
@@ -85,6 +97,21 @@ function AdjustForm() {
             placeholder="Ex: correction d'écart de caisse"
             required
           />
+        </div>
+        <div>
+          <FieldLabel htmlFor="adjust-payment-method">Modalité</FieldLabel>
+          <Select
+            id="adjust-payment-method"
+            className="w-40"
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+          >
+            {PAYMENT_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {PAYMENT_METHOD_LABELS[m]}
+              </option>
+            ))}
+          </Select>
         </div>
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? 'Envoi...' : 'Ajuster'}
@@ -531,6 +558,11 @@ function CanaouiteContent() {
     queryFn: () => api.get<{ balance: number }>('/treasury/balance'),
   });
 
+  const { data: balanceByMethod } = useQuery({
+    queryKey: ['treasury', 'balance-by-method'],
+    queryFn: () => api.get<Record<PaymentMethod, number>>('/treasury/balance-by-method'),
+  });
+
   const { data: movements, isLoading } = useQuery({
     queryKey: ['treasury', 'movements'],
     queryFn: () => api.get<CashMovement[]>('/treasury/movements'),
@@ -567,10 +599,31 @@ function CanaouiteContent() {
         <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Canaouite</h1>
         {balanceData && (
           <span className="text-lg font-semibold text-slate-900 dark:text-white">
-            Solde : {formatDT(balanceData.balance)}
+            Solde (Cash Espèce) : {formatDT(balanceData.balance)}
           </span>
         )}
       </div>
+
+      {balanceByMethod && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {PAYMENT_METHODS.map((m) => (
+            <Card key={m} className="flex flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {PAYMENT_METHOD_LABELS[m]}
+              </span>
+              <span
+                className={`text-xl font-bold ${
+                  balanceByMethod[m] >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400'
+                }`}
+              >
+                {formatDT(balanceByMethod[m])}
+              </span>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {(user?.role === 'VENDEUR' || user?.role === 'ADMIN') && <AdjustForm />}
       {user?.role === 'ADMIN' && <InvestForm />}
@@ -605,6 +658,7 @@ function CanaouiteContent() {
                 >
                   Montant
                 </SortableHeader>
+                <th className="px-4 py-3">Modalité</th>
                 <SortableHeader
                   active={sortKey === 'comment'}
                   direction={sortDirection}
@@ -645,6 +699,9 @@ function CanaouiteContent() {
                     >
                       {amount >= 0 ? '+' : ''}
                       {formatDT(amount)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                      {PAYMENT_METHOD_LABELS[movement.paymentMethod]}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                       {movement.comment ?? '—'}

@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { PaymentMethod } from '@prisma/client';
 
 export class AdjustTreasuryDto {
   @IsNumber()
@@ -7,4 +8,8 @@ export class AdjustTreasuryDto {
   @IsString()
   @IsNotEmpty()
   comment: string;
+
+  @IsEnum(PaymentMethod)
+  @IsOptional()
+  paymentMethod?: PaymentMethod;
 }

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Article, AD_CHANNELS } from '@/lib/types';
+import { Article, AD_CHANNELS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PaymentMethod } from '@/lib/types';
 import { Input, FieldLabel, Select, Textarea } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatDT } from '@/lib/format';
@@ -39,6 +39,7 @@ export function SellForm({
     adChannel: initialAdChannel ?? AD_CHANNELS[0],
     notes: '',
   });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -51,6 +52,7 @@ export function SellForm({
         adChannel: form.adChannel,
         notes: form.notes || undefined,
         orderId,
+        paymentMethod,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
@@ -130,19 +132,35 @@ export function SellForm({
           />
         </div>
       </div>
-      <div>
-        <FieldLabel htmlFor="adChannel">Où l&apos;annonce a été trouvée / vendue</FieldLabel>
-        <Select
-          id="adChannel"
-          value={form.adChannel}
-          onChange={(e) => setForm({ ...form, adChannel: e.target.value })}
-        >
-          {AD_CHANNELS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <FieldLabel htmlFor="adChannel">Où l&apos;annonce a été trouvée / vendue</FieldLabel>
+          <Select
+            id="adChannel"
+            value={form.adChannel}
+            onChange={(e) => setForm({ ...form, adChannel: e.target.value })}
+          >
+            {AD_CHANNELS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <FieldLabel htmlFor="paymentMethod">Modalité de paiement</FieldLabel>
+          <Select
+            id="paymentMethod"
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+          >
+            {PAYMENT_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {PAYMENT_METHOD_LABELS[m]}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
       <div>
         <FieldLabel htmlFor="notes">Notes (optionnel)</FieldLabel>

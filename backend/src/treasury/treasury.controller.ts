@@ -19,6 +19,11 @@ export class TreasuryController {
     return this.treasuryService.getBalance();
   }
 
+  @Get('balance-by-method')
+  getBalanceByMethod() {
+    return this.treasuryService.getBalanceByMethod();
+  }
+
   @Get('movements')
   history() {
     return this.treasuryService.history();

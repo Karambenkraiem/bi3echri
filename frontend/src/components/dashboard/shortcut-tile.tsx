@@ -15,6 +15,8 @@ const COLOR_CLASSES = {
   violet:
     'bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300 group-hover:bg-violet-500 group-hover:text-white',
   red: 'bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-300 group-hover:bg-red-500 group-hover:text-white',
+  indigo:
+    'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300 group-hover:bg-indigo-500 group-hover:text-white',
 } as const;
 
 export type ShortcutColor = keyof typeof COLOR_CLASSES;

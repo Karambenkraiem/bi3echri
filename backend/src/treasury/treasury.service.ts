@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CashMovementType, NotificationType, Prisma, Role } from '@prisma/client';
+import { CashMovementType, NotificationType, PaymentMethod, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdjustTreasuryDto } from './dto/adjust-treasury.dto';
 import { InvestTreasuryDto } from './dto/invest-treasury.dto';
@@ -22,8 +22,25 @@ export class TreasuryService {
   ) {}
 
   async getBalance() {
-    const result = await this.prisma.cashMovement.aggregate({ _sum: { amount: true } });
+    // La Canaouite représente la caisse physique : seuls les mouvements en
+    // espèces l'affectent (virement/chèque ne transitent pas par la caisse).
+    const result = await this.prisma.cashMovement.aggregate({
+      where: { paymentMethod: PaymentMethod.CASH },
+      _sum: { amount: true },
+    });
     return { balance: Number(result._sum.amount ?? 0) };
+  }
+
+  async getBalanceByMethod() {
+    const rows = await this.prisma.cashMovement.groupBy({
+      by: ['paymentMethod'],
+      _sum: { amount: true },
+    });
+    const totals: Record<PaymentMethod, number> = { CASH: 0, VIREMENT: 0, CHEQUE: 0 };
+    for (const row of rows) {
+      totals[row.paymentMethod] = Number(row._sum.amount ?? 0);
+    }
+    return totals;
   }
 
   history() {
@@ -58,6 +75,7 @@ export class TreasuryService {
     amount: number,
     createdById: string,
     comment?: string,
+    paymentMethod?: PaymentMethod,
   ) {
     return tx.cashMovement.create({
       data: {
@@ -65,6 +83,7 @@ export class TreasuryService {
         amount: Math.abs(amount),
         saleId,
         comment,
+        paymentMethod,
         createdById,
       },
     });
@@ -112,6 +131,7 @@ export class TreasuryService {
         type: CashMovementType.MANUAL,
         amount: dto.amount,
         comment: dto.comment,
+        paymentMethod: dto.paymentMethod,
         createdById,
       },
     });

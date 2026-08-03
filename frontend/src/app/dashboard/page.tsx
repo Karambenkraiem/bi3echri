@@ -34,6 +34,7 @@ import {
   UsersIcon,
   GearIcon,
   BoxIcon,
+  CalendarIcon,
 } from '@/components/ui/icons';
 
 function QuickExpenseForm({ onSuccess }: { onSuccess: () => void }) {
@@ -142,6 +143,7 @@ function DashboardContent() {
           />
           <ShortcutTile icon={WalletIcon} label="Canaouite" color="violet" href="/canaouite" />
           <ShortcutTile icon={BoxIcon} label="Stock" color="blue" href="/articles" />
+          <ShortcutTile icon={CalendarIcon} label="Rendez-vous" color="indigo" href="/rendez-vous" />
           <ShortcutTile icon={ChartIcon} label="Ventes" color="orange" href="/sales" />
           <ShortcutTile icon={FolderIcon} label="Catégories" color="green" href="/categories" />
           <ShortcutTile
