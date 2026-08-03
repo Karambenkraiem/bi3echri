@@ -57,7 +57,7 @@ export class TreasuryService {
     return { balance: Number(result._sum.amount ?? 0) };
   }
 
-  async balanceOverTime(granularity: Granularity) {
+  async balanceOverTime(granularity: Granularity, from?: string, to?: string) {
     // date_trunc()'s unit can't be bound as a query parameter here: Postgres
     // won't recognize the GROUP BY expression as matching the SELECT/ORDER BY
     // ones when it's a bind parameter (fails with "must appear in GROUP BY"
@@ -65,14 +65,41 @@ export class TreasuryService {
     // `granularity` is restricted to this fixed 3-value union, validated
     // against an enum in the DTO before this method is ever called.
     const format = granularity === 'month' ? 'YYYY-MM' : 'YYYY-MM-DD';
-    return this.prisma.$queryRawUnsafe<BalanceOverTimeRow[]>(`
-      SELECT
-        to_char(date_trunc('${granularity}', "createdAt"), '${format}') as period,
-        SUM(SUM(amount)) OVER (ORDER BY date_trunc('${granularity}', "createdAt"))::float as balance
-      FROM cash_movements
-      GROUP BY date_trunc('${granularity}', "createdAt")
-      ORDER BY date_trunc('${granularity}', "createdAt") ASC
-    `);
+
+    // The running balance always accumulates over ALL history first (inner
+    // query), and from/to only trim which points get displayed afterwards —
+    // otherwise picking a date range would restart the sum from zero instead
+    // of showing the real balance at each point ("zooming in", not "since").
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (from) {
+      params.push(new Date(from));
+      conditions.push(`bucket >= $${params.length}`);
+    }
+    if (to) {
+      params.push(new Date(to));
+      conditions.push(`bucket <= $${params.length}`);
+    }
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    return this.prisma.$queryRawUnsafe<BalanceOverTimeRow[]>(
+      `
+      SELECT period, balance FROM (
+        SELECT
+          to_char(bucket, '${format}') as period,
+          bucket,
+          SUM(amt) OVER (ORDER BY bucket)::float as balance
+        FROM (
+          SELECT date_trunc('${granularity}', "createdAt") as bucket, SUM(amount) as amt
+          FROM cash_movements
+          GROUP BY bucket
+        ) totals
+      ) windowed
+      ${whereClause}
+      ORDER BY bucket ASC
+      `,
+      ...params,
+    );
   }
 
   history() {

@@ -90,8 +90,8 @@ export class ArticlesService {
     });
   }
 
-  async update(id: string, dto: UpdateArticleDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateArticleDto, createdById?: string) {
+    const article = await this.findOne(id);
     if (dto.readyForPublication === false && !dto.notReadyReason?.trim()) {
       throw new BadRequestException(
         "Merci d'indiquer la raison pour laquelle l'article n'est pas encore prêt à être publié",
@@ -108,6 +108,40 @@ export class ArticlesService {
     if (dto.readyForPublication === true) {
       data.notReadyReason = null;
     }
+
+    // Augmenter la quantité, c'est acheter des unités supplémentaires : il
+    // faut donc compter (quantité ajoutée × prix unitaire) et l'enregistrer
+    // dans la Canaouite, exactement comme le fait le réapprovisionnement.
+    const addedQuantity =
+      dto.quantity != null && dto.quantity > article.quantity ? dto.quantity - article.quantity : 0;
+
+    if (addedQuantity > 0 && createdById) {
+      const unitPrice = dto.purchasePrice ?? Number(article.purchasePrice);
+      const cost = addedQuantity * unitPrice;
+      return this.prisma
+        .$transaction(async (tx) => {
+          const updated = await tx.article.update({ where: { id }, data, include: { category: true } });
+          await this.treasuryService.recordPurchase(
+            tx,
+            id,
+            cost,
+            createdById,
+            `${article.name} (+${addedQuantity})`,
+          );
+          return updated;
+        })
+        .then(async (updated) => {
+          await this.notificationsService.broadcast({
+            type: NotificationType.ACHAT_ARTICLE,
+            title: `Réapprovisionnement : ${updated.name}`,
+            message: `+${addedQuantity} (${cost.toFixed(3)} DT)`,
+            link: `/articles/${updated.id}`,
+            createdById,
+          });
+          return updated;
+        });
+    }
+
     return this.prisma.article.update({ where: { id }, data, include: { category: true } });
   }
 

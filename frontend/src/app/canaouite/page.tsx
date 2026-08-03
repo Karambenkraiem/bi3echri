@@ -568,6 +568,8 @@ function CanaouiteContent() {
   const [detailTarget, setDetailTarget] = useState<CashMovement | null>(null);
   const [showBalanceChart, setShowBalanceChart] = useState(false);
   const [granularity, setGranularity] = useState<BalanceGranularity>('day');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const { data: balanceData } = useQuery({
     queryKey: ['treasury', 'balance'],
@@ -585,9 +587,13 @@ function CanaouiteContent() {
   });
 
   const { data: balanceOverTime, isLoading: balanceOverTimeLoading } = useQuery({
-    queryKey: ['treasury', 'balance-over-time', granularity],
-    queryFn: () =>
-      api.get<BalanceOverTimePoint[]>(`/treasury/balance-over-time?granularity=${granularity}`),
+    queryKey: ['treasury', 'balance-over-time', granularity, dateFrom, dateTo],
+    queryFn: () => {
+      const params = new URLSearchParams({ granularity });
+      if (dateFrom) params.set('from', dateFrom);
+      if (dateTo) params.set('to', dateTo);
+      return api.get<BalanceOverTimePoint[]>(`/treasury/balance-over-time?${params.toString()}`);
+    },
     enabled: showBalanceChart,
   });
 
@@ -819,6 +825,40 @@ function CanaouiteContent() {
                 {g.label}
               </button>
             ))}
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <FieldLabel htmlFor="balance-date-from">Date début</FieldLabel>
+              <Input
+                id="balance-date-from"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="balance-date-to">Date fin</FieldLabel>
+              <Input
+                id="balance-date-to"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+                className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+              >
+                Réinitialiser
+              </button>
+            )}
           </div>
           {balanceOverTimeLoading ? (
             <p className="text-sm text-slate-500">Chargement...</p>

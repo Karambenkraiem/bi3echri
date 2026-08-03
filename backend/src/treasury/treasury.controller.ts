@@ -32,7 +32,7 @@ export class TreasuryController {
 
   @Get('balance-over-time')
   balanceOverTime(@Query() query: BalanceOverTimeQueryDto) {
-    return this.treasuryService.balanceOverTime(query.granularity ?? 'day');
+    return this.treasuryService.balanceOverTime(query.granularity ?? 'day', query.from, query.to);
   }
 
   @Get('movements')
