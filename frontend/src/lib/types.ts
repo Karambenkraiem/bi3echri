@@ -154,6 +154,13 @@ export interface VisitsPoint {
   visits: number;
 }
 
+export type BalanceGranularity = 'day' | 'week' | 'month';
+
+export interface BalanceOverTimePoint {
+  period: string;
+  balance: number;
+}
+
 export const AD_CHANNELS = [
   'Leboncoin',
   'Vinted',

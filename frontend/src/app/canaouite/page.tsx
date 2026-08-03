@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/auth-context';
 import { api, getAssetUrl } from '@/lib/api';
 import {
   Article,
+  BalanceGranularity,
+  BalanceOverTimePoint,
   CashMovement,
   CashMovementType,
   PAYMENT_METHODS,
@@ -15,6 +17,7 @@ import {
   PaymentMethod,
   Sale,
 } from '@/lib/types';
+import { BalanceOverTimeChart } from '@/components/dashboard/balance-over-time-chart';
 import { formatDT } from '@/lib/format';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -563,15 +566,29 @@ type SortKey = 'createdAt' | 'type' | 'amount' | 'comment' | 'createdBy';
 function CanaouiteContent() {
   const { user } = useAuth();
   const [detailTarget, setDetailTarget] = useState<CashMovement | null>(null);
+  const [showBalanceChart, setShowBalanceChart] = useState(false);
+  const [granularity, setGranularity] = useState<BalanceGranularity>('day');
 
   const { data: balanceData } = useQuery({
     queryKey: ['treasury', 'balance'],
     queryFn: () => api.get<{ balance: number }>('/treasury/balance'),
   });
 
+  const { data: totalBalanceData } = useQuery({
+    queryKey: ['treasury', 'balance-total'],
+    queryFn: () => api.get<{ balance: number }>('/treasury/balance-total'),
+  });
+
   const { data: balanceByMethod } = useQuery({
     queryKey: ['treasury', 'balance-by-method'],
     queryFn: () => api.get<Record<PaymentMethod, number>>('/treasury/balance-by-method'),
+  });
+
+  const { data: balanceOverTime, isLoading: balanceOverTimeLoading } = useQuery({
+    queryKey: ['treasury', 'balance-over-time', granularity],
+    queryFn: () =>
+      api.get<BalanceOverTimePoint[]>(`/treasury/balance-over-time?granularity=${granularity}`),
+    enabled: showBalanceChart,
   });
 
   const { data: movements, isLoading } = useQuery({
@@ -616,7 +633,28 @@ function CanaouiteContent() {
       </div>
 
       {balanceByMethod && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          {totalBalanceData && (
+            <button
+              type="button"
+              onClick={() => setShowBalanceChart(true)}
+              className="flex flex-col gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-4 text-left shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/80"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Solde Totale
+              </span>
+              <span
+                className={`text-xl font-bold ${
+                  totalBalanceData.balance >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400'
+                }`}
+              >
+                {formatDT(totalBalanceData.balance)}
+              </span>
+              <span className="text-xs text-violet-600 dark:text-violet-400">Voir la courbe →</span>
+            </button>
+          )}
           {PAYMENT_METHODS.map((m) => (
             <Card key={m} className="flex flex-col gap-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -752,6 +790,42 @@ function CanaouiteContent() {
               onClose={() => setDetailTarget(null)}
             />
           ))}
+      </Modal>
+
+      <Modal
+        open={showBalanceChart}
+        onClose={() => setShowBalanceChart(false)}
+        title="Évolution du solde total"
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            {(
+              [
+                { value: 'day', label: 'Jour' },
+                { value: 'week', label: 'Semaine' },
+                { value: 'month', label: 'Mois' },
+              ] as { value: BalanceGranularity; label: string }[]
+            ).map((g) => (
+              <button
+                key={g.value}
+                type="button"
+                onClick={() => setGranularity(g.value)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  granularity === g.value
+                    ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm shadow-blue-600/25'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+          {balanceOverTimeLoading ? (
+            <p className="text-sm text-slate-500">Chargement...</p>
+          ) : (
+            <BalanceOverTimeChart data={balanceOverTime ?? []} />
+          )}
+        </div>
       </Modal>
     </div>
   );

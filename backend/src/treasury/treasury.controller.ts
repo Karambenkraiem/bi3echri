@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { TreasuryService } from './treasury.service';
 import { AdjustTreasuryDto } from './dto/adjust-treasury.dto';
 import { InvestTreasuryDto } from './dto/invest-treasury.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { BalanceOverTimeQueryDto } from './dto/balance-over-time-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -22,6 +23,16 @@ export class TreasuryController {
   @Get('balance-by-method')
   getBalanceByMethod() {
     return this.treasuryService.getBalanceByMethod();
+  }
+
+  @Get('balance-total')
+  getTotalBalance() {
+    return this.treasuryService.getTotalBalance();
+  }
+
+  @Get('balance-over-time')
+  balanceOverTime(@Query() query: BalanceOverTimeQueryDto) {
+    return this.treasuryService.balanceOverTime(query.granularity ?? 'day');
   }
 
   @Get('movements')

@@ -14,6 +14,13 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 const EDITABLE_TYPES: CashMovementType[] = [CashMovementType.MANUAL, CashMovementType.INVESTMENT];
 
+type Granularity = 'day' | 'week' | 'month';
+
+export interface BalanceOverTimeRow {
+  period: string;
+  balance: number;
+}
+
 @Injectable()
 export class TreasuryService {
   constructor(
@@ -41,6 +48,31 @@ export class TreasuryService {
       totals[row.paymentMethod] = Number(row._sum.amount ?? 0);
     }
     return totals;
+  }
+
+  async getTotalBalance() {
+    // Toutes modalités confondues (contrairement à getBalance() qui ne
+    // reflète que le cash physique de la caisse).
+    const result = await this.prisma.cashMovement.aggregate({ _sum: { amount: true } });
+    return { balance: Number(result._sum.amount ?? 0) };
+  }
+
+  async balanceOverTime(granularity: Granularity) {
+    // date_trunc()'s unit can't be bound as a query parameter here: Postgres
+    // won't recognize the GROUP BY expression as matching the SELECT/ORDER BY
+    // ones when it's a bind parameter (fails with "must appear in GROUP BY"
+    // even though the text is identical). Safe to inline directly since
+    // `granularity` is restricted to this fixed 3-value union, validated
+    // against an enum in the DTO before this method is ever called.
+    const format = granularity === 'month' ? 'YYYY-MM' : 'YYYY-MM-DD';
+    return this.prisma.$queryRawUnsafe<BalanceOverTimeRow[]>(`
+      SELECT
+        to_char(date_trunc('${granularity}', "createdAt"), '${format}') as period,
+        SUM(SUM(amount)) OVER (ORDER BY date_trunc('${granularity}', "createdAt"))::float as balance
+      FROM cash_movements
+      GROUP BY date_trunc('${granularity}', "createdAt")
+      ORDER BY date_trunc('${granularity}', "createdAt") ASC
+    `);
   }
 
   history() {
