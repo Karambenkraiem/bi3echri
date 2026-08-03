@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -21,10 +22,14 @@ import { ClientAuthGuard } from './guards/client-auth.guard';
 import { CurrentClient } from './decorators/current-client.decorator';
 import type { AuthenticatedClient } from './strategies/client-jwt.strategy';
 import { clientAvatarUploadOptions } from './multer-avatar.config';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('public/clients')
 export class ClientsController {
-  constructor(private clientsService: ClientsService) {}
+  constructor(
+    private clientsService: ClientsService,
+    private authService: AuthService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -42,8 +47,20 @@ export class ClientsController {
   @Public()
   @UseGuards(ClientAuthGuard)
   @Get('me')
-  me(@CurrentClient() client: AuthenticatedClient) {
-    return this.clientsService.me(client.clientId);
+  async me(@CurrentClient() client: AuthenticatedClient) {
+    const data = await this.clientsService.me(client.clientId);
+    return { ...data, staffUserId: client.staffUserId ?? null };
+  }
+
+  @Public()
+  @UseGuards(ClientAuthGuard)
+  @Post('return-to-staff')
+  async returnToStaff(@CurrentClient() client: AuthenticatedClient) {
+    if (!client.staffUserId) {
+      throw new ForbiddenException("Ce compte n'est pas lié à un compte vendeur/admin");
+    }
+    const accessToken = await this.authService.issueTokenForUser(client.staffUserId);
+    return { accessToken };
   }
 
   @Public()

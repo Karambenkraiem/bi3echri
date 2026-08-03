@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { api, getAssetUrl } from '@/lib/api';
@@ -28,6 +28,8 @@ import {
   CalendarIcon,
   EyeIcon,
 } from '@/components/ui/icons';
+
+const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'http://localhost:3002';
 
 const LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: ChartIcon },
@@ -122,6 +124,16 @@ function UserMenu({ user, logout }: { user: { name: string; role: string; avatar
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  const viewAsClientMutation = useMutation({
+    mutationFn: () => api.post<{ accessToken: string }>('/clients/view-as-client'),
+    onSuccess: ({ accessToken }) => {
+      window.open(`${STOREFRONT_URL}/auto-login?token=${encodeURIComponent(accessToken)}`, '_blank');
+    },
+    onError: (err: unknown) => {
+      alert(err instanceof Error ? err.message : 'Erreur');
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
@@ -170,6 +182,17 @@ function UserMenu({ user, logout }: { user: { name: string; role: string; avatar
           >
             Mon profil
           </Link>
+          <button
+            onClick={() => {
+              setOpen(false);
+              viewAsClientMutation.mutate();
+            }}
+            disabled={viewAsClientMutation.isPending}
+            className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-50 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <EyeIcon className="h-4 w-4" />
+            {viewAsClientMutation.isPending ? 'Connexion...' : 'Voir le site comme client'}
+          </button>
           <button
             onClick={logout}
             className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"

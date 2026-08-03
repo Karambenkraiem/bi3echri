@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -9,6 +10,11 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+
+  private async issueToken(user: { id: string; email: string; role: Role }) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    return this.jwtService.signAsync(payload);
+  }
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -21,8 +27,7 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessToken = await this.jwtService.signAsync(payload);
+    const accessToken = await this.issueToken(user);
 
     return {
       accessToken,
@@ -36,6 +41,17 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
       },
     };
+  }
+
+  // Utilisé par le retour "vue client → back office" : le client a déjà prouvé
+  // (via son propre token, portant staffUserId) qu'il correspond à ce compte
+  // vendeur/admin, donc on remint directement un token staff sans mot de passe.
+  async issueTokenForUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.issueToken(user);
   }
 
   async me(userId: string) {

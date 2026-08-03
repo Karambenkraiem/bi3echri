@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { CalculatorIcon } from '@/components/ui/icons';
 
 type Operator = '+' | '-' | '×' | '÷';
@@ -29,8 +29,12 @@ export function CalculatorPopover() {
   const [display, setDisplay] = useState('0');
   const [stored, setStored] = useState<number | null>(null);
   const [pendingOp, setPendingOp] = useState<Operator | null>(null);
-  const [justEvaluated, setJustEvaluated] = useState(false);
+  // True right after an operator/= is pressed: the next digit starts a fresh
+  // operand instead of appending to what's on screen, and pressing another
+  // operator before typing a digit just swaps it instead of recomputing.
+  const [awaitingOperand, setAwaitingOperand] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -39,30 +43,29 @@ export function CalculatorPopover() {
         setOpen(false);
       }
     }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
     document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
-    };
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      panelRef.current?.focus();
+    }
   }, [open]);
 
   function inputDigit(digit: string) {
-    if (justEvaluated) {
+    if (awaitingOperand) {
       setDisplay(digit);
-      setJustEvaluated(false);
+      setAwaitingOperand(false);
       return;
     }
     setDisplay((prev) => (prev === '0' ? digit : prev + digit));
   }
 
   function inputDecimal() {
-    if (justEvaluated) {
+    if (awaitingOperand) {
       setDisplay('0.');
-      setJustEvaluated(false);
+      setAwaitingOperand(false);
       return;
     }
     setDisplay((prev) => (prev.includes('.') ? prev : `${prev}.`));
@@ -72,7 +75,7 @@ export function CalculatorPopover() {
     setDisplay('0');
     setStored(null);
     setPendingOp(null);
-    setJustEvaluated(false);
+    setAwaitingOperand(false);
   }
 
   function backspace() {
@@ -81,15 +84,17 @@ export function CalculatorPopover() {
 
   function chooseOperator(op: Operator) {
     const current = Number(display);
-    if (stored !== null && pendingOp && !justEvaluated) {
+    if (pendingOp && stored !== null && !awaitingOperand) {
+      // A full operand was entered since the last operator: chain the result.
       const result = compute(stored, current, pendingOp);
       setStored(result);
       setDisplay(formatDisplay(result));
-    } else {
+    } else if (stored === null) {
       setStored(current);
     }
+    // else: operator pressed again before any new digit — just swap it below.
     setPendingOp(op);
-    setJustEvaluated(false);
+    setAwaitingOperand(true);
   }
 
   function evaluate() {
@@ -99,7 +104,59 @@ export function CalculatorPopover() {
     setDisplay(formatDisplay(result));
     setStored(null);
     setPendingOp(null);
-    setJustEvaluated(true);
+    setAwaitingOperand(true);
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const { key } = e;
+    if (/^[0-9]$/.test(key)) {
+      inputDigit(key);
+      e.preventDefault();
+      return;
+    }
+    if (key === '.' || key === ',') {
+      inputDecimal();
+      e.preventDefault();
+      return;
+    }
+    switch (key) {
+      case '+':
+        chooseOperator('+');
+        e.preventDefault();
+        break;
+      case '-':
+        chooseOperator('-');
+        e.preventDefault();
+        break;
+      case '*':
+      case 'x':
+      case 'X':
+        chooseOperator('×');
+        e.preventDefault();
+        break;
+      case '/':
+        chooseOperator('÷');
+        e.preventDefault();
+        break;
+      case 'Enter':
+      case '=':
+        evaluate();
+        e.preventDefault();
+        break;
+      case 'Backspace':
+        backspace();
+        e.preventDefault();
+        break;
+      case 'Delete':
+      case 'c':
+      case 'C':
+        clearAll();
+        e.preventDefault();
+        break;
+      case 'Escape':
+        setOpen(false);
+        break;
+    }
   }
 
   const BTN =
@@ -117,7 +174,12 @@ export function CalculatorPopover() {
       </button>
 
       {open && (
-        <div className="animate-fade-in-up absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-200/70 bg-white p-3 shadow-lg dark:border-slate-800/70 dark:bg-slate-900">
+        <div
+          ref={panelRef}
+          tabIndex={-1}
+          onKeyDown={handleKeyDown}
+          className="animate-fade-in-up absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-200/70 bg-white p-3 shadow-lg outline-none dark:border-slate-800/70 dark:bg-slate-900"
+        >
           <div className="mb-2 rounded-lg bg-slate-100 px-3 py-2 text-right text-xl font-semibold text-slate-900 dark:bg-slate-800 dark:text-white">
             {display}
           </div>

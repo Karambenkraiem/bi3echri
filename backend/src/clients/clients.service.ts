@@ -25,8 +25,8 @@ export class ClientsService {
     private jwtService: JwtService,
   ) {}
 
-  private async issueToken(client: { id: string; email: string | null }) {
-    const payload = { sub: client.id, email: client.email };
+  private async issueToken(client: { id: string; email: string | null }, staffUserId?: string) {
+    const payload = { sub: client.id, email: client.email, staffUserId };
     return this.jwtService.signAsync(payload);
   }
 
@@ -134,6 +134,24 @@ export class ClientsService {
       throw new NotFoundException('Client introuvable');
     }
     const accessToken = await this.issueToken(client);
+    return { accessToken };
+  }
+
+  // Le vendeur/admin devient client sur sa propre boutique : on réutilise (ou
+  // crée) le compte client lié à son email, et on marque le token émis avec
+  // staffUserId pour permettre le retour direct vers le back office ensuite.
+  async viewAsClient(staffUserId: string) {
+    const staffUser = await this.prisma.user.findUnique({ where: { id: staffUserId } });
+    if (!staffUser) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+    let client = await this.prisma.client.findUnique({ where: { email: staffUser.email } });
+    if (!client) {
+      client = await this.prisma.client.create({
+        data: { email: staffUser.email, name: staffUser.name },
+      });
+    }
+    const accessToken = await this.issueToken(client, staffUserId);
     return { accessToken };
   }
 

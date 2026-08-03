@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/lib/theme-context';
 import { useClientAuth } from '@/lib/client-auth-context';
 import { api, getAssetUrl } from '@/lib/api';
@@ -11,6 +11,8 @@ import { matchesSearch } from '@/lib/search';
 import { Product } from '@/lib/types';
 import { formatDT } from '@/lib/format';
 import { SunIcon, MoonIcon, UserIcon, BoxIcon, SearchIcon } from '@/components/ui/icons';
+
+const BACKOFFICE_URL = process.env.NEXT_PUBLIC_BACKOFFICE_URL ?? 'http://localhost:3000';
 
 const LINKS = [
   { href: '/', label: 'Accueil' },
@@ -181,10 +183,29 @@ function Avatar({ url, name, className = 'h-8 w-8' }: { url?: string | null; nam
   );
 }
 
-function AccountMenu({ client }: { client: { name: string; email?: string | null; avatarUrl?: string | null } }) {
+function AccountMenu({
+  client,
+}: {
+  client: {
+    name: string;
+    email?: string | null;
+    avatarUrl?: string | null;
+    staffUserId?: string | null;
+  };
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { logout } = useClientAuth();
+
+  const returnToStaffMutation = useMutation({
+    mutationFn: () => api.post<{ accessToken: string }>('/public/clients/return-to-staff'),
+    onSuccess: ({ accessToken }) => {
+      window.location.href = `${BACKOFFICE_URL}/auto-login?token=${encodeURIComponent(accessToken)}`;
+    },
+    onError: (err: unknown) => {
+      alert(err instanceof Error ? err.message : 'Erreur');
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -243,6 +264,18 @@ function AccountMenu({ client }: { client: { name: string; email?: string | null
           >
             Paramètres du profil
           </Link>
+          {client.staffUserId && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                returnToStaffMutation.mutate();
+              }}
+              disabled={returnToStaffMutation.isPending}
+              className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-violet-600 hover:bg-violet-50 disabled:opacity-50 dark:text-violet-400 dark:hover:bg-violet-900/20"
+            >
+              {returnToStaffMutation.isPending ? 'Connexion...' : "Retour à l'administration"}
+            </button>
+          )}
           <button
             onClick={() => {
               setOpen(false);
@@ -262,6 +295,16 @@ export function StorefrontNavbar() {
   const pathname = usePathname();
   const { client, logout } = useClientAuth();
   const [open, setOpen] = useState(false);
+
+  const returnToStaffMutation = useMutation({
+    mutationFn: () => api.post<{ accessToken: string }>('/public/clients/return-to-staff'),
+    onSuccess: ({ accessToken }) => {
+      window.location.href = `${BACKOFFICE_URL}/auto-login?token=${encodeURIComponent(accessToken)}`;
+    },
+    onError: (err: unknown) => {
+      alert(err instanceof Error ? err.message : 'Erreur');
+    },
+  });
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md dark:border-slate-800/70 dark:bg-slate-950/80">
@@ -354,6 +397,18 @@ export function StorefrontNavbar() {
               >
                 Paramètres du profil
               </Link>
+              {client.staffUserId && (
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    returnToStaffMutation.mutate();
+                  }}
+                  disabled={returnToStaffMutation.isPending}
+                  className="rounded-lg px-3 py-2 text-left text-sm font-medium text-violet-600 disabled:opacity-50 dark:text-violet-400"
+                >
+                  {returnToStaffMutation.isPending ? 'Connexion...' : "Retour à l'administration"}
+                </button>
+              )}
               <button
                 onClick={() => {
                   setOpen(false);

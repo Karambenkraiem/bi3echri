@@ -61,6 +61,7 @@ export interface Client {
   phone?: string | null;
   avatarUrl?: string | null;
   createdAt: string;
+  staffUserId?: string | null;
 }
 
 export type MessageSender = 'CLIENT' | 'STAFF';

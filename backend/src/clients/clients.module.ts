@@ -6,9 +6,11 @@ import { ClientsService } from './clients.service';
 import { ClientsController } from './clients.controller';
 import { ClientsAdminController } from './clients-admin.controller';
 import { ClientJwtStrategy } from './strategies/client-jwt.strategy';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
