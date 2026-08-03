@@ -39,23 +39,32 @@ export class TreasuryService {
     articleId: string,
     amount: number,
     createdById: string,
+    comment?: string,
   ) {
     return tx.cashMovement.create({
       data: {
         type: CashMovementType.PURCHASE,
         amount: -Math.abs(amount),
         articleId,
+        comment,
         createdById,
       },
     });
   }
 
-  recordSale(tx: Prisma.TransactionClient, saleId: string, amount: number, createdById: string) {
+  recordSale(
+    tx: Prisma.TransactionClient,
+    saleId: string,
+    amount: number,
+    createdById: string,
+    comment?: string,
+  ) {
     return tx.cashMovement.create({
       data: {
         type: CashMovementType.SALE,
         amount: Math.abs(amount),
         saleId,
+        comment,
         createdById,
       },
     });
@@ -84,12 +93,14 @@ export class TreasuryService {
     expenseId: string,
     amount: number,
     createdById: string,
+    comment?: string,
   ) {
     return tx.cashMovement.create({
       data: {
         type: CashMovementType.EXPENSE,
         amount: -Math.abs(amount),
         expenseId,
+        comment,
         createdById,
       },
     });

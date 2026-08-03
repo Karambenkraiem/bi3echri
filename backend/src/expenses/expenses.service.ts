@@ -37,7 +37,7 @@ export class ExpensesService {
       const expense = await tx.expense.create({
         data: { amount: dto.amount, comment: dto.comment, createdById },
       });
-      await this.treasuryService.recordExpense(tx, expense.id, dto.amount, createdById);
+      await this.treasuryService.recordExpense(tx, expense.id, dto.amount, createdById, dto.comment);
       return expense;
     }).then(async (expense) => {
       await this.notificationsService.broadcast({

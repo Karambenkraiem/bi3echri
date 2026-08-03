@@ -76,7 +76,7 @@ export class ArticlesService {
         include: { category: true },
       });
       const totalCost = dto.purchasePrice * (dto.quantity ?? 1);
-      await this.treasuryService.recordPurchase(tx, article.id, totalCost, createdById);
+      await this.treasuryService.recordPurchase(tx, article.id, totalCost, createdById, article.name);
       return article;
     }).then(async (article) => {
       await this.notificationsService.broadcast({
@@ -132,7 +132,7 @@ export class ArticlesService {
         include: { category: true },
       });
       if (dto.cost) {
-        await this.treasuryService.recordPurchase(tx, id, dto.cost, createdById);
+        await this.treasuryService.recordPurchase(tx, id, dto.cost, createdById, updated.name);
       }
       return updated;
     }).then(async (updated) => {

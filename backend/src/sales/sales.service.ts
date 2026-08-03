@@ -82,7 +82,7 @@ export class SalesService {
           data: { status: OrderStatus.VENDU, retraitDeadline: null },
         });
       }
-      await this.treasuryService.recordSale(tx, sale.id, dto.salePrice, soldById);
+      await this.treasuryService.recordSale(tx, sale.id, dto.salePrice, soldById, article.name);
       return sale;
     }).then(async (sale) => {
       await this.notificationsService.broadcast({
