@@ -58,6 +58,24 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadClient]);
 
+  useEffect(() => {
+    // Le token est partagé (localStorage) entre tous les onglets d'une même
+    // origine : sans ceci, se connecter avec un autre compte dans un onglet
+    // laisse les autres onglets afficher l'ancien client alors que leurs
+    // requêtes s'authentifient déjà silencieusement avec le nouveau token.
+    function handleStorage(e: StorageEvent) {
+      if (e.key !== 'bi3echri_client_token') return;
+      if (e.newValue) {
+        loadClient();
+      } else {
+        setClient(null);
+        setLoading(false);
+      }
+    }
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [loadClient]);
+
   const login = useCallback(
     async (email: string, password: string, redirectTo?: string) => {
       try {

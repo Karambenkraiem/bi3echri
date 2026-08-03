@@ -48,6 +48,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadUser]);
 
+  useEffect(() => {
+    // Le token est partagé (localStorage) entre tous les onglets d'une même
+    // origine : sans ceci, se connecter avec un autre compte dans un onglet
+    // laisse les autres onglets afficher l'ancien utilisateur alors que leurs
+    // requêtes s'authentifient déjà silencieusement avec le nouveau token.
+    function handleStorage(e: StorageEvent) {
+      if (e.key !== 'bi3echri_token') return;
+      if (e.newValue) {
+        loadUser();
+      } else {
+        setUser(null);
+        setLoading(false);
+        router.push('/login');
+      }
+    }
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [loadUser, router]);
+
   const login = useCallback(
     async (email: string, password: string) => {
       const result = await api.post<{ accessToken: string; user: User }>('/auth/login', {
